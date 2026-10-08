@@ -1,131 +1,235 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Browser Tunnel — Preview</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Browser Tunnel · Live Preview</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%23020617'/%3E%3Ccircle cx='50' cy='50' r='21' fill='none' stroke='%2334d399' stroke-width='9'/%3E%3C/svg%3E" />
 <style>
-  html, body { margin:0; height:100%; background:#020617; color:#e2e8f0;
-               font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
-  #boot {
-    position:fixed; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:18px; padding:32px; text-align:center;
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background-color: #020617;
+    background-image: radial-gradient(900px 520px at 20% 0%, rgba(14,116,144,.18), transparent 60%),
+                      radial-gradient(700px 420px at 90% 10%, rgba(109,40,217,.14), transparent 60%);
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;
   }
-  .logo {
-    width:54px; height:54px; border-radius:14px;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    box-shadow: 0 0 30px rgba(56,189,248,.35);
-    display:flex; align-items:center; justify-content:center;
-    font-size:24px; color:white; font-weight:700;
-    animation: pulse 1.6s ease-in-out infinite;
+  .bt-shell {
+    max-width: 620px; width: 100%; border-radius: 18px; padding: 26px;
+    background: rgba(15,23,42,.82); border: 1px solid rgba(30,41,59,.7);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 28px 70px -28px rgba(0,0,0,.85);
   }
-  @keyframes pulse {
-    0%,100% { transform: scale(1); box-shadow: 0 0 30px rgba(56,189,248,.35); }
-    50%     { transform: scale(1.08); box-shadow: 0 0 50px rgba(99,102,241,.55); }
+  .bt-tag {
+    display: inline-flex; align-items: center; gap: 8px; font: 600 11px/1 ui-monospace, Menlo, Consolas, monospace;
+    letter-spacing: .14em; text-transform: uppercase; padding: 7px 11px; border-radius: 999px;
   }
-  h1 { margin:0; font-size:15px; letter-spacing:.18em; color:#67e8f9; text-transform:uppercase; }
-  p  { margin:0; color:#64748b; font-size:13px; max-width:420px; line-height:1.55; }
-  .err {
-    background:#1e293b; border:1px solid #334155; border-radius:10px;
-    padding:14px 18px; color:#fca5a5; font-size:13px; max-width:520px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    white-space:pre-wrap; text-align:left;
-  }
-  .btn {
-    margin-top:6px; padding:9px 18px; border-radius:10px; border:1px solid #1e293b;
-    background:#0f172a; color:#e2e8f0; font-size:13px; cursor:pointer; transition:.15s;
-  }
-  .btn:hover { border-color:#0ea5e9; color:#7dd3fc; }
+  .bt-ok   { color: #34d399; border: 1px solid rgba(52,211,153,.35); background: rgba(52,211,153,.10); }
+  .bt-warn { color: #fbbf24; border: 1px solid rgba(251,191,36,.35); background: rgba(251,191,36,.10); }
+  .bt-err  { color: #fb7185; border: 1px solid rgba(251,113,133,.35); background: rgba(251,113,133,.10); }
+  h1 { font-size: 21px; margin: 16px 0 8px; letter-spacing: -.02em; }
+  p  { margin: 0 0 10px; color: #94a3b8; font-size: 14px; line-height: 1.65; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; background: #0b1220; border: 1px solid #1e293b; padding: 2px 6px; border-radius: 6px; color: #cbd5e1; }
+  .bt-bar { height: 4px; border-radius: 99px; background: #0b1220; overflow: hidden; margin: 18px 0 4px; }
+  .bt-bar > i { display: block; height: 100%; width: 40%; border-radius: 99px; background: linear-gradient(90deg, #22d3ee, #a78bfa); animation: bt-slide 1.25s ease-in-out infinite; }
+  @keyframes bt-slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+  a.bt-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; text-decoration: none; background: #0ea5e9; color: #04121c; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 10px; }
+  a.bt-btn:hover { background: #38bdf8; }
+  .bt-hint { margin-top: 12px; font-size: 12px; color: #64748b; }
 </style>
 </head>
 <body>
-<div id="boot">
-  <div class="logo">B</div>
-  <h1>Browser Tunnel</h1>
-  <p id="status">Spinning up tunnel session…</p>
-  <div id="error" class="err" style="display:none;"></div>
-  <button id="retry" class="btn" style="display:none;">Retry</button>
+
+<div class="bt-shell" id="bt-shell">
+  <span class="bt-tag bt-ok" id="bt-tag">TUNNEL · UNPACKING</span>
+  <h1 id="bt-title">Establishing the tunnel…</h1>
+  <p id="bt-msg">Decompressing the packed project bundle and promoting it to a native top-level document.</p>
+  <div class="bt-bar"><i></i></div>
+  <p class="bt-hint" id="bt-hint">Zero iframes · WebRTC, PeerJS, getUserMedia and hardware permissions stay fully available.</p>
 </div>
 
-<!-- Official LZ-string library -->
-<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <script>
-/* --------------------------------------------------------------------------
-   preview.html — fallback renderer.
-   The Service Worker (sw.js) usually intercepts this URL and returns the
-   unpacked project as a top-level document. This page only runs if the SW
-   is not yet active (e.g. first visit before registration completes).
-   -------------------------------------------------------------------------- */
+/* =============================================================================
+   Browser Tunnel — standalone preview router (fallback path)
+   -----------------------------------------------------------------------------
+   Normal path: the origin Service Worker intercepts this navigation, decodes the
+   payload and answers with a full text/html Response — this file never even
+   executes. That is the ideal route because it also enforces expiry + revocation
+   before a single byte of user code runs.
+
+   Fallback path (SW not yet installed/controlling, SW unsupported, or CDN blocked
+   inside the worker): the browser reaches the network, this script runs, and it
+   decodes + document.write()s the same payload into the SAME top-level document.
+   document.write() is used deliberately: it replaces the document rather than
+   nesting it, so the result is still a first-class top-level window — no iframe,
+   no srcdoc, no sandbox attribute.
+   ============================================================================= */
 (function () {
-  const statusEl = document.getElementById("status");
-  const errorEl  = document.getElementById("error");
-  const retryEl  = document.getElementById("retry");
+  'use strict';
 
-  function fail(msg, hint) {
-    statusEl.style.display = "none";
-    errorEl.style.display = "block";
-    errorEl.textContent = msg + (hint ? "\n\n" + hint : "");
-    retryEl.style.display = "inline-block";
-    retryEl.onclick = () => location.reload();
+  var LS_REVOKED = 'bt.revoked.v1';
+  var TTL_MS = 15 * 60 * 1000;
+
+  var $tag = document.getElementById('bt-tag');
+  var $title = document.getElementById('bt-title');
+  var $msg = document.getElementById('bt-msg');
+  var $hint = document.getElementById('bt-hint');
+  var $bar = document.querySelector('.bt-bar');
+
+  function fail(title, message, hint) {
+    $tag.className = 'bt-tag bt-err';
+    $tag.textContent = 'TUNNEL · FAILED';
+    $title.textContent = title;
+    $msg.innerHTML = message;
+    $hint.innerHTML = hint || 'Open the Browser Tunnel IDE and spin up a fresh tunnel to get a working link.';
+    if ($bar && $bar.parentNode) $bar.parentNode.removeChild($bar);
+    var back = document.createElement('a');
+    back.className = 'bt-btn';
+    back.href = './';
+    back.innerHTML = '&#8592; Back to the Browser Tunnel IDE';
+    $hint.parentNode.insertBefore(back, $hint);
+    document.title = title + ' · Browser Tunnel';
   }
 
-  function composeHTML(p) {
-    if (!p) throw new Error("Empty project payload");
-    if (p.type === "single") return p.html || "<!doctype html><title>Empty</title>";
-    const css = p.css || "";
-    const js  = p.js  || "";
-    const html = p.html || "";
-    return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title><style>${css}</style></head><body>${html}<script>try{${js}}catch(e){var b=document.createElement('div');b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fee2e2;padding:12px;font:13px monospace;z-index:999999';b.textContent='Runtime error: '+(e&&e.stack?e.stack:String(e));document.body.appendChild(b);}<\/script></body></html>`;
+  function readParam(search, name) {
+    var m = new RegExp('[?&]' + name + '=([^&]*)').exec(search || '');
+    if (!m) return null;
+    try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; }
   }
 
-  function render() {
-    const params = new URLSearchParams(location.search);
-    const payload = params.get("p");
-    const exp = params.get("exp");
+  function readRevoked() {
+    try {
+      var raw = localStorage.getItem(LS_REVOKED);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
 
-    if (!payload) {
-      fail("No tunnel payload found in URL.", "Open this page only from the Browser Tunnel IDE 'Spin Up' action.");
+  var search = window.location.search || '';
+  var packed = readParam(search, 'c');
+  var expRaw = readParam(search, 'exp');
+  var tunnelId = readParam(search, 'id');
+
+  /* ---- 1. no payload -------------------------------------------------- */
+  if (!packed) {
+    if (tunnelId || expRaw) {
+      fail('This tunnel URL is incomplete.',
+        'The <code>c</code> parameter — the compressed project bundle — is missing from the query string.',
+        'Long URLs are sometimes truncated by chat clients. Copy the link again straight from the IDE clipboard utility.');
       return;
     }
-    if (exp) {
-      const expNum = Number(exp);
-      if (!Number.isFinite(expNum)) { fail("Invalid expiration timestamp."); return; }
-      if (Date.now() > expNum) {
-        fail("Tunnel has expired.", "Tunnels live for 15 minutes. Re-spin from the IDE.");
-        return;
-      }
-    }
-    try {
-      if (!window.LZString || typeof window.LZString.decompressFromBase64 !== 'function') {
-        fail("LZString library failed to load.", "Check your network connection and retry.");
-        return;
-      }
-      const json = window.LZString.decompressFromBase64(payload);
-      if (!json) {
-        fail("Empty / corrupted payload.");
-        return;
-      }
-      const project = JSON.parse(json);
-      const finalDoc = composeHTML(project);
-      // Replace entire top-level document so PeerJS/WebRTC/camera see a real top-level origin.
-      document.open();
-      document.write(finalDoc);
-      document.close();
-    } catch (e) {
-      fail("Failed to render tunnel payload: " + (e && e.message ? e.message : String(e)),
-           "The compressed parameter may be corrupted or truncated.");
-    }
+    /* Opened preview.html directly with no tunnel: hand off to the IDE. */
+    $tag.className = 'bt-tag bt-warn';
+    $tag.textContent = 'PREVIEW ROUTER · IDLE';
+    $title.textContent = 'Nothing is tunnelled right now.';
+    $msg.innerHTML = 'This page is the routing target for packed tunnels. It decodes a <code>?c=…</code> payload into a live top-level document.';
+    $hint.innerHTML = 'Create a project in the IDE and hit <strong>Spin Up Tunnel Server</strong>.';
+    var a = document.createElement('a');
+    a.className = 'bt-btn';
+    a.href = './';
+    a.textContent = 'Open the Browser Tunnel IDE';
+    $hint.parentNode.insertBefore(a, $hint);
+    if ($bar && $bar.parentNode) $bar.parentNode.removeChild($bar);
+    return;
   }
 
-  // Try to register the SW first; render regardless after a short timeout
-  // (the SW will intercept and we never reach render() in that case).
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {}).finally(() => {
-      setTimeout(render, 300);
-    });
-  } else {
-    fail("Service Workers not supported in this browser.", "Try Chrome / Edge / Firefox latest.");
+  /* ---- 2. decoder availability ---------------------------------------- */
+  if (typeof LZString === 'undefined' || typeof LZString.decompressFromEncodedURIComponent !== 'function') {
+    fail('The decompression runtime could not be loaded.',
+      'The <code>lz-string</code> library failed to load from its CDN, so the packed bundle cannot be unpacked in the browser.',
+      'Check the network connection / content blockers, then reload this tunnel link.');
+    return;
   }
+
+  /* ---- 3. expiry ------------------------------------------------------- */
+  var exp = expRaw ? parseInt(expRaw, 10) : NaN;
+  if (!isNaN(exp) && Date.now() > exp) {
+    fail('This tunnel has expired.',
+      'Tunnel links self-destruct 15 minutes after spin-up. This one closed at <code>' + new Date(exp).toUTCString() + '</code>.',
+      'Spin up a new tunnel from the IDE to mint a fresh link.');
+    return;
+  }
+
+  /* ---- 4. local revocation -------------------------------------------- */
+  if (tunnelId && readRevoked().indexOf(tunnelId) !== -1) {
+    fail('This tunnel was revoked.',
+      'The publishing machine killed this server before its 15-minute window elapsed.',
+      'Tunnel id <code>' + String(tunnelId).slice(0, 12) + '</code>');
+    return;
+  }
+
+  /* ---- 5. decompress --------------------------------------------------- */
+  var html = null;
+  try { html = LZString.decompressFromEncodedURIComponent(packed); } catch (e) { html = null; }
+  if (!html && packed.indexOf(' ') !== -1) {
+    try { html = LZString.decompressFromEncodedURIComponent(packed.replace(/ /g, '+')); } catch (e2) { html = null; }
+  }
+
+  if (!html || !html.length) {
+    fail('The tunnel payload could not be decompressed.',
+      'The link appears truncated or corrupted — usually a chat client or proxy rewriting a very long URL.',
+      'Payload received: <code>' + String(packed.length) + '</code> characters. Copy the link again from the IDE.');
+    return;
+  }
+
+  /* ---- 6. promote to a native top-level document ---------------------- */
+  try {
+    window.__BT_TUNNEL__ = {
+      id: tunnelId || null,
+      expiresAt: isNaN(exp) ? null : exp,
+      ttlMs: TTL_MS,
+      servedBy: 'preview-router'
+    };
+
+    document.open();
+    document.write(html);
+    document.close();
+  } catch (err) {
+    fail('The project could not be rendered.',
+      'An exception was raised while promoting the bundle into the document: <code>' + String(err && err.message ? err.message : err) + '</code>',
+      'Verify the project source in the IDE, then spin up a new tunnel.');
+    return;
+  }
+
+  /* ---- 7. tunnel status badge (injected after the takeover) ------------ */
+  try {
+    if (document.body) {
+      var badge = document.createElement('div');
+      badge.setAttribute('data-bt-badge', '1');
+      badge.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:2147483647;display:flex;align-items:center;gap:8px;' +
+        'padding:8px 12px;border-radius:999px;background:rgba(2,6,23,.86);border:1px solid rgba(52,211,153,.35);' +
+        'color:#a7f3d0;font:600 11px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;' +
+        'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 12px 30px -14px rgba(0,0,0,.9);cursor:pointer';
+      badge.title = 'Click to hide this badge';
+      badge.innerHTML = '<span style="width:7px;height:7px;border-radius:99px;background:#34d399;box-shadow:0 0 10px #34d399"></span>' +
+        '<span>TUNNEL LIVE · <span id="bt-badge-clock">--:--</span></span>';
+
+      var clock = function () {
+        var el = document.getElementById('bt-badge-clock');
+        if (!el) return;
+        if (isNaN(exp)) { el.textContent = 'NO TTL'; return; }
+        var left = exp - Date.now();
+        if (left <= 0) {
+          el.textContent = 'EXPIRED';
+          badge.style.borderColor = 'rgba(251,113,133,.45)';
+          badge.style.color = '#fecdd3';
+          return;
+        }
+        var s = Math.floor(left / 1000);
+        el.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+      };
+      clock();
+      var timer = setInterval(clock, 1000);
+      badge.addEventListener('click', function () {
+        clearInterval(timer);
+        badge.remove();
+      });
+      document.body.appendChild(badge);
+    }
+  } catch (e) { /* purely cosmetic */ }
 })();
 </script>
 </body>
