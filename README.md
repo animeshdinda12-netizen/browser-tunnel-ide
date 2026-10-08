@@ -1,37 +1,44 @@
-# Browser Tunnel IDE
+# 🚀 Browser Tunnel
 
-A premium, backendless web development IDE with ephemeral "Browser Tunnel" preview URLs. Built as a single, robust HTML architecture using React, Tailwind CSS, and Lucide via CDN — no Vite, no npm, no terminal installation.
+A **backendless web development IDE** and deployment-tunnel platform that runs entirely in the browser.
+No build step, no npm, no server — just three static files.
+
+## How it works
+
+1. **Author** — build a project in the IDE (single unified HTML file, or split HTML / CSS / JS panes).
+2. **Pack** — the active project is composed into one document and compressed into the URL with `lz-string`.
+3. **Tunnel** — a link to `preview.html?c=…&exp=…&id=…` is minted with a 15-minute expiry.
+4. **Serve** — `sw.js` (a Service Worker) intercepts that navigation, decompresses the payload and answers with a real `text/html` **Response**.
+
+Because the Service Worker answers the navigation directly, the result is a **native top-level document**.
+There is no `<iframe>`, no `srcdoc` and no `sandbox` attribute anywhere in the pipeline, so **WebRTC, PeerJS,
+`getUserMedia`, geolocation, clipboard and every other hardware/permission API** behave exactly as they do on an
+ordinary origin.
 
 ## Files
 
 | File | Role |
-|------|------|
-| `index.html` | The IDE: dashboard, modals, workspace, editor, tunnel feature |
-| `preview.html` | Fallback renderer (only runs if SW hasn't taken control yet) |
-| `sw.js` | Service Worker that intercepts `preview.html?p=…` and returns the unpacked project as a top-level HTML document (zero iframes) |
+| --- | --- |
+| `index.html` | The IDE — React 18 + Tailwind + Lucide via pinned CDNs, all state in `localStorage` |
+| `preview.html` | The routing target. Normally answered by the Service Worker; contains a `document.write()` fallback for the very first navigation (a Service Worker never controls the load that registers it) |
+| `sw.js` | Decodes the tunnel payload, enforces expiry + revocation, returns error pages for corrupt/expired/revoked links |
 
 ## Features
 
-- **Dashboard** with grid cards for every saved project (Open / Rename / Download / Delete)
-- **Two-step New Project modal**: choose structure (single HTML or split HTML/CSS/JS), then enter metadata + optional local file import
-- **Workspace** with split or unified layouts, tabbed editors, line-numbered gutter, tab-key support
-- **Utility actions**: Clear current pane, Remove template (blank canvas), inline Rename, Download project (`.html` or `.zip`)
-- **🚀 Spin Up Tunnel**: compresses active code via `lz-string` base64, packs into `preview.html?p=…&exp=…` URL with 15-minute expiry
-- **Service Worker routing**: intercepts the preview URL and returns the unpacked document as a NATIVE top-level window — full compatibility with PeerJS, WebRTC, and device permissions (no iframe sandbox)
-- **LocalStorage persistence** with quota-exceeded error handling
-- **Error Boundary** wraps the React app for graceful crash recovery
-- **Glassmorphism dark cyberpunk theme** with pulse-glow CTAs and grid-bg dashboard
+- Dashboard with search, sort, project cards, rename / download / delete
+- Two-step new-project wizard (structure → metadata, with local file import)
+- Syntax-highlighted editors with line gutters, tab handling and auto-indent
+- Live sandboxed preview, full-screen pop-out, new-tab export
+- `Clear` pane, `Remove Template` (blank canvas), instant rename, `.html` / `.zip` export
+- **🚀 Spin Up Tunnel Server** — pulsing action, countdown ring, copy-live-link, revoke
+- Error pages for expired (410), revoked (410), corrupt (422) and missing (400) payloads
+- Resilient storage: quota and private-mode failures surface as toasts, never data loss
 
-## Deploy (GitHub Pages)
+## Deploy anywhere
 
-This repository is GitHub Pages-ready. Push the three files to a branch named `main`, enable Pages for the root of `main`, and the IDE will be live at:
+Drop the three files at the root of any static host (GitHub Pages, Netlify, Cloudflare Pages, S3).
+All paths are relative, so the app works from a sub-path such as `https://user.github.io/repo/`.
 
-```
-https://<your-username>.github.io/<repo-name>/
-```
+## License
 
-## Architecture notes
-
-- All persistence is client-side only — projects never leave the browser.
-- The Service Worker is the keystone: it transforms `preview.html` navigations into native top-level document responses. Without the SW, `preview.html` falls back to in-page `document.write()` rendering (which still works but lacks the SW's MIME control and Cache-Control headers).
-- The 15-minute tunnel expiry is enforced both client-side (in the SW fetch handler) and in the fallback renderer.
+MIT
