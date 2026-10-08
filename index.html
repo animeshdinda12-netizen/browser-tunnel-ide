@@ -1,63 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Browser Tunnel IDE — Backendless Web Dev Studio</title>
-<meta name="description" content="Premium backendless web development IDE with Browser Tunnel deployment. Build, preview, and ship single-file or split HTML/CSS/JS projects — fully client-side.">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#020617" />
+<meta name="description" content="Browser Tunnel — a backendless web IDE that packs your project into a live top-level preview URL. Zero iframes, full WebRTC + hardware permission support." />
+<title>Browser Tunnel · Backendless Web IDE &amp; Deployment Tunnels</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%23020617'/%3E%3Ccircle cx='50' cy='50' r='21' fill='none' stroke='%2322d3ee' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='6' fill='%23a78bfa'/%3E%3C/svg%3E" />
 
-<!-- React 18 production CDNs -->
-<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-
-<!-- Babel standalone (JSX transform in-browser) -->
-<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
-
-<!-- Tailwind CSS via CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Lucide icons (UMD) — we re-run createIcons() after each React render -->
-<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-
-<!-- lz-string for URL compression -->
-<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
-
-<!-- JSZip for multi-file project downloads -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-
-<!-- Tailwind custom theme config -->
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script>
   tailwind.config = {
+    darkMode: 'class',
     theme: {
       extend: {
-        colors: {
-          brand: {
-            50:  '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-            800: '#1e40af', 900: '#1e3a8a'
-          }
-        },
         fontFamily: {
-          mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
-        },
-        animation: {
-          'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
-          'slide-up':   'slideUp .25s ease-out',
-          'fade-in':    'fadeIn .18s ease-out',
+          sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace']
         },
         keyframes: {
-          pulseGlow: {
-            '0%,100%': { boxShadow: '0 0 0 0 rgba(56,189,248,.55)' },
-            '50%':     { boxShadow: '0 0 0 12px rgba(56,189,248,0)' }
-          },
-          slideUp: {
-            '0%': { transform: 'translateY(8px)', opacity: 0 },
-            '100%': { transform: 'translateY(0)', opacity: 1 }
-          },
-          fadeIn: {
-            '0%': { opacity: 0 },
-            '100%': { opacity: 1 }
-          }
+          'bt-fade': { from: { opacity: '0' }, to: { opacity: '1' } },
+          'bt-pop': { from: { opacity: '0', transform: 'scale(.96) translateY(8px)' }, to: { opacity: '1', transform: 'scale(1) translateY(0)' } },
+          'bt-rise': { from: { opacity: '0', transform: 'translateY(12px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+          'bt-slide-left': { from: { opacity: '0', transform: 'translateX(24px)' }, to: { opacity: '1', transform: 'translateX(0)' } },
+          'bt-ring': { '0%': { transform: 'scale(.85)', opacity: '.65' }, '70%': { transform: 'scale(1.45)', opacity: '0' }, '100%': { transform: 'scale(1.45)', opacity: '0' } },
+          'bt-float': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-7px)' } },
+          'bt-sheen': { '0%': { transform: 'translateX(-120%)' }, '100%': { transform: 'translateX(220%)' } },
+          'bt-spin': { to: { transform: 'rotate(360deg)' } }
+        },
+        animation: {
+          'bt-fade': 'bt-fade .22s ease-out both',
+          'bt-pop': 'bt-pop .24s cubic-bezier(.22,1,.36,1) both',
+          'bt-rise': 'bt-rise .3s cubic-bezier(.22,1,.36,1) both',
+          'bt-slide-left': 'bt-slide-left .26s cubic-bezier(.22,1,.36,1) both',
+          'bt-ring': 'bt-ring 2.2s cubic-bezier(.4,0,.6,1) infinite',
+          'bt-float': 'bt-float 5s ease-in-out infinite',
+          'bt-sheen': 'bt-sheen 2.6s ease-in-out infinite',
+          'bt-spin': 'bt-spin .8s linear infinite'
         }
       }
     }
@@ -65,1083 +44,2022 @@
 </script>
 
 <style>
-  html, body { background:#020617; color:#e2e8f0; }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
-  * { -webkit-tap-highlight-color: transparent; }
-  ::-webkit-scrollbar { width:10px; height:10px; }
-  ::-webkit-scrollbar-track { background:#020617; }
-  ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:6px; border:2px solid #020617; }
-  ::-webkit-scrollbar-thumb:hover { background:#334155; }
-  textarea, input { outline:none; }
-  textarea { tab-size: 2; }
-  .glass { background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-  .grid-bg {
+  :root { color-scheme: dark; }
+  html, body { height: 100%; }
+  body {
+    background-color: #020617;
     background-image:
-      linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px);
-    background-size: 32px 32px;
+      radial-gradient(1100px 620px at 12% -8%, rgba(14,116,144,.20), transparent 62%),
+      radial-gradient(900px 520px at 92% 4%, rgba(109,40,217,.16), transparent 60%),
+      linear-gradient(180deg, #020617 0%, #020617 55%, #010409 100%);
+    background-attachment: fixed;
   }
-  .code-font { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .no-scrollbar::-webkit-scrollbar { display:none; }
-  .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+  .bt-grid-bg::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .35;
+    background-image:
+      linear-gradient(rgba(148,163,184,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.055) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 78%);
+  }
+  .bt-glass { backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+  .bt-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .bt-scroll::-webkit-scrollbar-track { background: rgba(2,6,23,.5); }
+  .bt-scroll::-webkit-scrollbar-thumb { background: rgba(51,65,85,.85); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+  .bt-scroll::-webkit-scrollbar-thumb:hover { background: rgba(71,85,105,.95); background-clip: padding-box; }
+  .bt-scroll { scrollbar-width: thin; scrollbar-color: rgba(51,65,85,.9) transparent; }
+
+  /* ---------- code editor ---------- */
+  .bt-code {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 20px; tab-size: 2; -moz-tab-size: 2;
+    letter-spacing: 0; font-variant-ligatures: none;
+  }
+  .bt-editor-wrap { position: relative; overflow: hidden; }
+  .bt-hl, .bt-ta { position: absolute; inset: 0; margin: 0; padding: 12px 16px; border: 0; white-space: pre; word-wrap: normal; overflow: auto; }
+  .bt-hl { pointer-events: none; z-index: 1; color: #e2e8f0; }
+  .bt-ta {
+    z-index: 2; background: transparent; color: transparent; caret-color: #22d3ee; resize: none; outline: none;
+  }
+  .bt-ta::selection { background: rgba(34,211,238,.28); }
+  .bt-gutter {
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 20px; padding: 12px 10px 12px 14px; text-align: right;
+    color: #334155; user-select: none; overflow: hidden; border-right: 1px solid rgba(30,41,59,.65);
+    background: rgba(2,6,23,.42);
+  }
+  .bt-gutter span { display: block; }
+  .tk-tag { color: #f472b6; }
+  .tk-attr { color: #fbbf24; }
+  .tk-str { color: #86efac; }
+  .tk-com { color: #64748b; font-style: italic; }
+  .tk-doc { color: #94a3b8; }
+  .tk-punc { color: #64748b; }
+  .tk-sel { color: #22d3ee; }
+  .tk-prop { color: #93c5fd; }
+  .tk-num { color: #fda4af; }
+  .tk-kw { color: #c084fc; }
+  .tk-fn { color: #5eead4; }
+  .tk-brace { color: #94a3b8; }
+
+  .bt-caret-ring { position: absolute; inset: 0; border-radius: inherit; border: 1px solid rgba(34,211,238,.55); animation: bt-ring 2.2s cubic-bezier(.4,0,.6,1) infinite; }
+  .bt-sheen-wrap { position: relative; overflow: hidden; }
+  .bt-sheen-wrap::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 38%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.22), transparent);
+    animation: bt-sheen 2.6s ease-in-out infinite;
+  }
+  .bt-card-hover { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
+  .bt-card-hover:hover { transform: translateY(-3px); border-color: rgba(34,211,238,.38); box-shadow: 0 22px 45px -28px rgba(34,211,238,.55); }
+  .bt-focus:focus-visible { outline: 2px solid rgba(34,211,238,.75); outline-offset: 2px; }
+  input[type="text"], input[type="search"], select, textarea { color-scheme: dark; }
+  .bt-no-scroll { overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
 </style>
 </head>
-<body class="bg-slate-950">
+<body class="min-h-screen bg-slate-950 text-slate-200 antialiased selection:bg-cyan-500/30 selection:text-cyan-50">
+
 <div id="root"></div>
 
-<!-- Main application script (Babel JSX) -->
-<script type="text/babel" data-presets="env,react">
-/* ==========================================================================
-   Browser Tunnel IDE — main application
-   ========================================================================== */
-const { useState: useStateReact, useEffect, useRef, useMemo, useCallback } = React;
-const useState = useStateReact;
-
-/* ----- lucide helper -------------------------------------------------- */
-function useIcons() {
-  useEffect(() => {
-    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
-  });
-}
-function Icon({ name, size = 18, className = "", strokeWidth = 2 }) {
-  useIcons();
-  return <i data-lucide={name} style={{ width: size, height: size }} className={className} data-stroke-width={strokeWidth}></i>;
-}
-
-/* ----- storage helpers ------------------------------------------------ */
-const LS_KEY_PROJECTS = "bt-projects";
-const LS_KEY_ACTIVE    = "bt-active-id";
-const LS_KEY_LAYOUT    = "bt-layout";     // 'split' | 'unified'
-const LS_KEY_SW_REG     = "bt-sw-registered";
-
-function loadProjects() {
-  try {
-    const raw = localStorage.getItem(LS_KEY_PROJECTS);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr.filter(p => p && p.id && p.name && p.type);
-  } catch (e) {
-    console.warn("Failed to load projects:", e);
-    return [];
-  }
-}
-function saveProjects(projects) {
-  try {
-    localStorage.setItem(LS_KEY_PROJECTS, JSON.stringify(projects));
-    return true;
-  } catch (e) {
-    if (e && e.name === "QuotaExceededError") {
-      alert("Local Storage quota exceeded. Try removing large projects or downloading and deleting them.");
-      return false;
-    }
-    console.warn("Failed to save projects:", e);
-    return false;
-  }
-}
-
-/* ----- default templates -------------------------------------------- */
-const TEMPLATES = {
-  single: `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My App</title>
-  <script src="https://cdn.tailwindcss.com"><\/script>
-</head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center">
-  <div class="text-center space-y-3">
-    <h1 class="text-4xl font-bold text-cyan-300">Browser Tunnel</h1>
-    <p class="text-slate-400">Edit me, then hit 🚀 Spin Up Tunnel.</p>
-    <button onclick="alert('Hello from Browser Tunnel IDE!')"
-            class="px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold">
-      Click me
-    </button>
+<!-- ============================= BOOT SCREEN ============================= -->
+<div id="bt-boot" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950">
+  <div class="w-full max-w-md rounded-2xl border border-slate-800/60 bg-slate-900/80 bt-glass p-7 text-center shadow-2xl shadow-black/60">
+    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10">
+      <svg class="h-6 w-6 animate-bt-spin text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      </svg>
+    </div>
+    <h1 class="text-sm font-semibold tracking-wide text-slate-200">Booting Browser Tunnel IDE</h1>
+    <p class="mt-2 text-xs leading-relaxed text-slate-500" data-boot-msg>Compiling the React workspace from CDN…</p>
   </div>
-<\/body>
-<\/html>`,
-  multi: {
-    html: `<div class="card">
-  <h1>Hello Tunnel</h1>
-  <p>Edit HTML, CSS, and JS in their own tabs.</p>
-  <button id="btn">Increment <span id="count">0</span></button>
-</div>`,
-    css: `* { box-sizing: border-box; }
-body {
-  margin: 0; min-height: 100vh;
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
-  display: flex; align-items: center; justify-content: center;
-  font-family: system-ui, sans-serif; color: white;
-}
-.card { background: rgba(0,0,0,.25); padding: 32px 40px; border-radius: 16px; text-align: center; backdrop-filter: blur(8px); }
-h1 { margin: 0 0 8px; }
-button { margin-top: 16px; padding: 10px 18px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; }
-button:hover { background: #fde047; color: #0f172a; }`,
-    js: `const btn = document.getElementById('btn');
-const countEl = document.getElementById('count');
-let n = 0;
-btn.addEventListener('click', () => {
-  n += 1;
-  countEl.textContent = n;
-});`
+</div>
+
+<noscript>
+  <div class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950 p-6">
+    <div class="max-w-md rounded-2xl border border-rose-500/30 bg-slate-900/90 p-6 text-center">
+      <h1 class="text-base font-semibold text-rose-300">JavaScript is required</h1>
+      <p class="mt-2 text-sm text-slate-400">Browser Tunnel is a client-side IDE. Enable JavaScript and reload this page.</p>
+    </div>
+  </div>
+</noscript>
+
+<!-- ============================= LIBRARIES (pinned) ============================= -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+<script>
+  /* Asset probe — surfaced by the boot watchdog and the diagnostics panel. */
+  window.__BT_ASSETS__ = {
+    react: typeof window.React !== 'undefined',
+    reactDom: typeof window.ReactDOM !== 'undefined',
+    lz: typeof window.LZString !== 'undefined',
+    jszip: typeof window.JSZip !== 'undefined',
+    lucide: !!(window.lucide && window.lucide.Trash2),
+    babel: typeof window.Babel !== 'undefined'
+  };
+</script>
+
+<script type="text/babel" data-presets="react">
+/* =============================================================================
+   BROWSER TUNNEL — IDE CORE (part 1/3)
+   Constants · resilient storage · icon runtime · design atoms · dashboard
+   ============================================================================= */
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } = React;
+
+const APP_VERSION = '1.0.0';
+const LS_PROJECTS = 'bt.projects.v1';
+const LS_PREFS = 'bt.prefs.v1';
+const LS_REVOKED = 'bt.revoked.v1';
+const TUNNEL_TTL_MS = 15 * 60 * 1000;
+const TUNNEL_WARN_CHARS = 7500;
+const TUNNEL_HARD_CHARS = 60000;
+
+/* -----------------------------------------------------------------------------
+   Resilient storage — every read/write is guarded (private mode, quota, corruption)
+   -------------------------------------------------------------------------- */
+const Store = {
+  lastError: null,
+  get(key, fallback) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw === null || raw === undefined) return fallback;
+      return JSON.parse(raw);
+    } catch (err) {
+      this.lastError = err;
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+      this.lastError = null;
+      return { ok: true };
+    } catch (err) {
+      this.lastError = err;
+      const name = (err && err.name) || '';
+      const quota = name === 'QuotaExceededError' || name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22 || err.code === 1014;
+      return {
+        ok: false,
+        quota,
+        message: quota
+          ? 'Local storage quota exceeded — this project is too large to autosave. Export it to disk to keep your work.'
+          : 'Local storage is unavailable (private browsing or blocked cookies) — changes will not survive a reload.'
+      };
+    }
+  },
+  remove(key) { try { window.localStorage.removeItem(key); } catch (e) { /* ignore */ } },
+  available() {
+    try {
+      const probe = '__bt_probe__';
+      window.localStorage.setItem(probe, '1');
+      window.localStorage.removeItem(probe);
+      return true;
+    } catch (e) { return false; }
   }
 };
 
-/* ----- id generator --------------------------------------------------- */
-function genId() {
-  return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+/* -----------------------------------------------------------------------------
+   Small utilities
+   -------------------------------------------------------------------------- */
+let __seq = 0;
+function uid(prefix) {
+  __seq += 1;
+  const rnd = Math.random().toString(36).slice(2, 8);
+  return (prefix || 'id') + '_' + Date.now().toString(36) + '_' + __seq.toString(36) + rnd;
 }
-
-/* ----- format date ---------------------------------------------------- */
-function formatDate(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-    + " · " + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+function bytes(n) {
+  if (!n && n !== 0) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
 }
-
-/* ----- format countdown ---------------------------------------------- */
-function formatCountdown(ms) {
-  if (ms < 0) ms = 0;
-  const total = Math.floor(ms / 1000);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-}
-
-/* ----- copy to clipboard --------------------------------------------- */
-async function copyText(text) {
+function fmtDate(iso) {
   try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (e) { /* fallthrough */ }
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return '—'; }
+}
+function relTime(iso) {
   try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed'; ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    return true;
-  } catch (e) {
-    return false;
-  }
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return days + 'd ago';
+    return fmtDate(iso).split(' · ')[0];
+  } catch (e) { return '—'; }
+}
+function clock(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = String(Math.floor(total / 60)).padStart(2, '0');
+  const s = String(total % 60).padStart(2, '0');
+  return m + ':' + s;
+}
+function slug(name) {
+  return String(name || 'project').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'project';
+}
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/* ----- Error Boundary ------------------------------------------------ */
-class ErrorBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { hasError: false, message: "" }; }
-  static getDerivedStateFromError(err) {
-    return { hasError: true, message: (err && err.message) ? err.message : String(err) };
+/* -----------------------------------------------------------------------------
+   Project templates
+   -------------------------------------------------------------------------- */
+const TPL_SINGLE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hello Tunnel</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: radial-gradient(circle at 28% 18%, #0e7490 0, #020617 58%);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #e2e8f0; padding: 24px;
   }
-  componentDidCatch(err, info) {
-    console.error("Boundary caught:", err, info);
+  .card {
+    max-width: 560px; width: 100%; padding: 28px; border-radius: 18px;
+    background: rgba(15, 23, 42, .82); border: 1px solid rgba(30, 41, 59, .8);
+    box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .9);
   }
-  reset = () => this.setState({ hasError: false, message: "" });
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center p-8 bg-slate-950">
-          <div className="glass border border-slate-800 rounded-2xl p-8 max-w-md text-center">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-red-500/20 flex items-center justify-center">
-              <Icon name="alert-triangle" size={22} className="text-red-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-red-300 mb-2">App crashed</h2>
-            <p className="text-sm text-slate-400 mb-5 break-words">{this.state.message}</p>
-            <button onClick={this.reset}
-              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-200 border border-slate-700">
-              Reload view
-            </button>
-          </div>
-        </div>
-      );
+  .tag { font: 700 11px/1 ui-monospace, Menlo, monospace; letter-spacing: .16em; text-transform: uppercase; color: #34d399; }
+  h1 { font-size: 26px; margin: 14px 0 10px; letter-spacing: -.02em; }
+  p { margin: 0 0 14px; color: #94a3b8; line-height: 1.65; font-size: 14px; }
+  button {
+    font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+    background: #22d3ee; color: #04121c; border: 0; padding: 11px 16px; border-radius: 10px;
+  }
+  button:hover { background: #67e8f9; }
+  pre {
+    margin: 16px 0 0; padding: 12px; border-radius: 10px; background: #0b1220;
+    border: 1px solid #1e293b; color: #94a3b8; font-size: 12px; line-height: 1.6;
+    max-height: 200px; overflow: auto; white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="tag">Browser Tunnel · Single File</p>
+    <h1>Your app is live.</h1>
+    <p>
+      This document was compressed into a URL, decompressed by the origin service worker,
+      and served as a real top-level page. There is no iframe in the pipeline, so WebRTC,
+      PeerJS, getUserMedia and device permissions behave natively.
+    </p>
+    <button id="cam">Test camera permission</button>
+    <pre id="log">ready.</pre>
+  </main>
+<script>
+  var logEl = document.getElementById('log');
+  function log(msg) { logEl.textContent += '\\n' + msg; }
+  log('origin: ' + location.origin);
+  log('secure context: ' + window.isSecureContext);
+  log('top-level window: ' + (window.top === window.self));
+  document.getElementById('cam').addEventListener('click', async function () {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      log('getUserMedia unavailable in this browser.');
+      return;
     }
-    return this.props.children;
-  }
-}
-
-/* ----- Toast --------------------------------------------------------- */
-function Toast({ toast, onClose }) {
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(onClose, 2400);
-    return () => clearTimeout(t);
-  }, [toast, onClose]);
-  if (!toast) return null;
-  const palette = {
-    success: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300",
-    error:   "bg-red-500/15    border-red-500/40    text-red-300",
-    info:    "bg-sky-500/15    border-sky-500/40    text-sky-300"
-  };
-  const icons = { success: "check-circle", error: "alert-circle", info: "info" };
-  return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
-      <div className={`glass border rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${palette[toast.kind] || palette.info}`}>
-        <Icon name={icons[toast.kind] || icons.info} size={16} />
-        <span>{toast.msg}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ----- Top nav bar --------------------------------------------------- */
-function TopNav({ onBackToDashboard, projectName, view }) {
-  return (
-    <header className="glass sticky top-0 z-30 border-b border-slate-800/60 px-4 py-2.5 flex items-center gap-3">
-      <button onClick={onBackToDashboard}
-        className="flex items-center gap-2 group">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-sky-500/20">
-          B
-        </div>
-        <div className="hidden sm:block">
-          <div className="text-[11px] uppercase tracking-[.22em] text-slate-500 leading-none">Browser</div>
-          <div className="text-[13px] font-semibold text-slate-200 leading-tight">Tunnel IDE</div>
-        </div>
-      </button>
-      {view === 'workspace' && projectName && (
-        <div className="ml-2 hidden md:flex items-center gap-2 text-slate-500 text-sm">
-          <Icon name="chevron-right" size={14} />
-          <span className="text-slate-300">{projectName}</span>
-        </div>
-      )}
-      <div className="flex-1" />
-      <a href="https://github.com" target="_blank" rel="noreferrer"
-         className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800/60 transition">
-        <Icon name="github" size={16} /> Source
-      </a>
-      <div className="flex items-center gap-1.5 text-xs text-slate-400 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Local-only</span>
-      </div>
-    </header>
-  );
-}
-
-/* ----- Dashboard: project cards ------------------------------------- */
-function ProjectCard({ project, onOpen, onRename, onDelete, onDownload, index }) {
-  const [menu, setMenu] = useState(false);
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(false);
-    document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [menu]);
-
-  return (
-    <div className="group relative glass border border-slate-800/70 rounded-2xl p-5 hover:border-sky-500/40 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/5 animate-fade-in"
-      style={{ animationDelay: (index * 0.04) + 's' }}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/60 flex items-center justify-center group-hover:from-sky-500/20 group-hover:to-indigo-500/20 transition">
-          <Icon name={project.type === 'single' ? "file-code-2" : "layers-3"} size={20} className="text-slate-400 group-hover:text-sky-300 transition" />
-        </div>
-        <div className="relative">
-          <button onClick={(e) => { e.stopPropagation(); setMenu(v => !v); }}
-            className="p-1.5 rounded-lg hover:bg-slate-800/80 text-slate-500 hover:text-slate-200 transition">
-            <Icon name="more-vertical" size={16} />
-          </button>
-          {menu && (
-            <div className="absolute right-0 top-full mt-1 w-44 glass border border-slate-800 rounded-xl py-1.5 z-20 animate-slide-up">
-              <button onClick={() => { setMenu(false); onOpen(); }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
-                <Icon name="external-link" size={14} /> Open
-              </button>
-              <button onClick={() => { setMenu(false); onRename(); }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
-                <Icon name="pencil" size={14} /> Rename
-              </button>
-              <button onClick={() => { setMenu(false); onDownload(); }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
-                <Icon name="download" size={14} /> Download
-              </button>
-              <div className="h-px bg-slate-800 my-1.5" />
-              <button onClick={() => { setMenu(false); onDelete(); }}
-                className="w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10 flex items-center gap-2">
-                <Icon name="trash-2" size={14} /> Delete
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <button onClick={onOpen} className="block w-full text-left">
-        <h3 className="text-slate-100 font-semibold truncate mb-1">{project.name}</h3>
-        <div className="flex items-center gap-2 mb-3">
-          {project.type === 'single' ? (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20">
-              Single HTML
-            </span>
-          ) : (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-              Multi-file Split
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-slate-500 flex items-center gap-1.5">
-          <Icon name="clock" size={12} />
-          {formatDate(project.updatedAt || project.createdAt)}
-        </p>
-      </button>
-    </div>
-  );
-}
-
-/* ----- New Project Modal ------------------------------------------- */
-function NewProjectModal({ onClose, onCreate }) {
-  const [step, setStep] = useState(1);
-  const [type, setType] = useState(null);     // 'single' | 'multi'
-  const [name, setName] = useState("");
-  const [imported, setImported] = useState(null); // {html, css?, js?}
-  const fileRef = useRef(null);
-  useIcons();
-
-  function handleFile(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || "");
-      // If file is .html, treat as single. If .css/.js, fill appropriate slot.
-      const lower = file.name.toLowerCase();
-      if (lower.endsWith('.html') || lower.endsWith('.htm')) {
-        setType('single');
-        setImported({ html: text });
-      } else if (lower.endsWith('.css')) {
-        setType('multi');
-        setImported({ css: text });
-      } else if (lower.endsWith('.js') || lower.endsWith('.mjs')) {
-        setType('multi');
-        setImported({ js: text });
-      } else {
-        setType('single');
-        setImported({ html: text });
-      }
-      if (!name) setName(file.name.replace(/\.[^.]+$/, ''));
-    };
-    reader.readAsText(file);
-  }
-
-  function create() {
-    const finalName = name.trim() || (type === 'single' ? "Untitled HTML" : "Untitled Project");
-    let html, css, js;
-    if (type === 'single') {
-      html = imported?.html || TEMPLATES.single;
-    } else {
-      html = imported?.html || TEMPLATES.multi.html;
-      css = imported?.css || TEMPLATES.multi.css;
-      js  = imported?.js  || TEMPLATES.multi.js;
-    }
-    onCreate({ name: finalName, type, html, css, js });
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="glass border border-slate-800 rounded-2xl w-full max-w-lg p-6 animate-slide-up shadow-2xl shadow-sky-500/5">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-            <Icon name="plus-circle" size={20} className="text-sky-400" />
-            New Project
-          </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200">
-            <Icon name="x" size={18} />
-          </button>
-        </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-6">
-          <div className={`flex items-center gap-2 text-xs ${step >= 1 ? 'text-sky-300' : 'text-slate-500'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold border ${step >= 1 ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700'}`}>1</div>
-            <span>Structure</span>
-          </div>
-          <div className="flex-1 h-px bg-slate-800" />
-          <div className={`flex items-center gap-2 text-xs ${step >= 2 ? 'text-sky-300' : 'text-slate-500'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold border ${step >= 2 ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700'}`}>2</div>
-            <span>Metadata</span>
-          </div>
-        </div>
-
-        {step === 1 && (
-          <div className="space-y-3">
-            <button onClick={() => { setType('single'); setStep(2); }}
-              className={`w-full text-left p-4 rounded-xl border transition group ${type === 'single' ? 'border-sky-500 bg-sky-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}`}>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
-                  <Icon name="file-code-2" size={18} className="text-sky-300" />
-                </div>
-                <div>
-                  <div className="font-medium text-slate-100">Single Unified HTML File</div>
-                  <div className="text-xs text-slate-500">All CSS + JS inline in one .html document</div>
-                </div>
-              </div>
-              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20">Badge A</span>
-            </button>
-            <button onClick={() => { setType('multi'); setStep(2); }}
-              className={`w-full text-left p-4 rounded-xl border transition group ${type === 'multi' ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}`}>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                  <Icon name="layers-3" size={18} className="text-indigo-300" />
-                </div>
-                <div>
-                  <div className="font-medium text-slate-100">Split Component View</div>
-                  <div className="text-xs text-slate-500">HTML, CSS, JS in separate editable panes</div>
-                </div>
-              </div>
-              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Badge B</span>
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">Project name</label>
-              <input autoFocus value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
-                placeholder="My awesome app"
-                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:border-sky-500/60 transition" />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">Import code (optional)</label>
-              <input ref={fileRef} type="file" accept=".html,.htm,.css,.js,.mjs"
-                onChange={(e) => { const f = e.target.files[0]; if (f) handleFile(f); }}
-                className="hidden" />
-              <button onClick={() => fileRef.current?.click()}
-                className="w-full p-4 rounded-xl border border-dashed border-slate-700 hover:border-sky-500/60 hover:bg-slate-800/40 transition flex flex-col items-center gap-1.5">
-                <Icon name="upload-cloud" size={20} className="text-slate-500" />
-                <span className="text-sm text-slate-300">{imported ? "Replace file" : "Choose a .html / .css / .js file"}</span>
-                {imported && (
-                  <span className="text-[11px] text-emerald-300 flex items-center gap-1 mt-1">
-                    <Icon name="check-circle" size={12} /> File imported
-                  </span>
-                )}
-              </button>
-            </div>
-            <div className="flex items-center justify-between pt-2">
-              <button onClick={() => setStep(1)}
-                className="px-3 py-2 text-sm text-slate-400 hover:text-slate-200 flex items-center gap-1">
-                <Icon name="arrow-left" size={14} /> Back
-              </button>
-              <button onClick={create}
-                className="px-4 py-2 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center gap-2 shadow-lg shadow-sky-500/20 transition">
-                <Icon name="rocket" size={14} /> Create project
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ----- Editor pane (textarea + line numbers + tab support) --------- */
-function EditorPane({ value, onChange, lang, placeholder }) {
-  const taRef = useRef(null);
-  const gutterRef = useRef(null);
-  const [lineCount, setLineCount] = useState(1);
-
-  useEffect(() => {
-    const lines = (value || "").split("\n").length;
-    setLineCount(lines);
-  }, [value]);
-
-  function syncScroll() {
-    if (gutterRef.current && taRef.current) {
-      gutterRef.current.scrollTop = taRef.current.scrollTop;
-    }
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const insert = "  ";
-      const next = value.slice(0, start) + insert + value.slice(end);
-      onChange(next);
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + insert.length;
-      });
-    }
-  }
-
-  const lines = [];
-  for (let i = 1; i <= lineCount; i++) lines.push(i);
-
-  const langColor = {
-    html: 'text-orange-400', css: 'text-sky-400', js: 'text-yellow-400'
-  }[lang] || 'text-slate-400';
-
-  return (
-    <div className="relative flex h-full overflow-hidden bg-slate-950">
-      <div ref={gutterRef}
-        className="no-scrollbar overflow-hidden text-right py-3 px-2 select-none text-xs code-font text-slate-600 bg-slate-950 border-r border-slate-800/60"
-        style={{ minWidth: 44 }}>
-        {lines.map((n) => <div key={n} style={{ height: '1.55em', lineHeight: '1.55em' }}>{n}</div>)}
-      </div>
-      <textarea
-        ref={taRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKey}
-        onScroll={syncScroll}
-        spellCheck={false}
-        placeholder={placeholder || "Type code here..."}
-        className="flex-1 py-3 px-3 bg-slate-950 text-slate-100 code-font text-sm leading-[1.55] resize-none border-0 focus:ring-0"
-        style={{ tabSize: 2, whiteSpace: 'pre', overflowWrap: 'normal' }}
-      />
-      <span className="absolute top-2 right-3 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">
-        <span className={langColor}>{lang}</span>
-      </span>
-    </div>
-  );
-}
-
-/* ----- Tunnel overlay ---------------------------------------------- */
-function TunnelOverlay({ link, expiresAt, onRevoke }) {
-  const [now, setNow] = useState(Date.now());
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const remaining = expiresAt - now;
-
-  async function handleCopy() {
-    const ok = await copyText(link);
-    if (ok) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }
-  }
-
-  function openLive() {
-    window.open(link, '_blank', 'noopener');
-  }
-
-  const expired = remaining <= 0;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
-      <div className="glass border border-slate-800 rounded-2xl w-full max-w-md p-6 text-center animate-slide-up shadow-2xl">
-        <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3 ${expired ? 'bg-slate-800' : 'bg-gradient-to-br from-sky-500 to-indigo-500 shadow-lg shadow-sky-500/30 animate-pulse-glow'}`}>
-          <Icon name={expired ? "moon-star" : "rocket"} size={28} className="text-white" />
-        </div>
-        <h2 className="text-lg font-semibold text-slate-100 mb-1">
-          {expired ? "Tunnel expired" : "Tunnel is live"}
-        </h2>
-        <p className="text-sm text-slate-500 mb-4">
-          {expired ? "Re-spin to keep your session alive." : "Open the link in any browser — runs as a top-level document."}
-        </p>
-        {!expired && (
-          <div className="mb-4">
-            <div className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Tunnel active for</div>
-            <div className="text-3xl font-mono font-semibold text-emerald-300 tabular-nums">
-              {formatCountdown(remaining)}
-            </div>
-            <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all"
-                style={{ width: (Math.max(0, remaining) / 900000) * 100 + '%' }} />
-            </div>
-          </div>
-        )}
-        <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 mb-3 flex items-center gap-2">
-          <input readOnly value={link} className="flex-1 bg-transparent text-xs text-slate-300 code-font truncate" />
-          <button onClick={handleCopy}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1 ${copied ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300 hover:bg-sky-500/30'}`}>
-            <Icon name={copied ? "check" : "clipboard-copy"} size={13} />
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={openLive} disabled={expired}
-            className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition">
-            <Icon name="external-link" size={15} /> Open live
-          </button>
-          <button onClick={onRevoke}
-            className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/40 text-sm text-slate-300 hover:text-red-300 flex items-center justify-center gap-2 transition">
-            <Icon name="power" size={15} /> Revoke
-          </button>
-        </div>
-        <p className="text-[11px] text-slate-600 mt-4">
-          Service Worker intercepts the preview URL and returns your packed code as a top-level HTML document — no iframes.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/* ----- Workspace (IDE) --------------------------------------------- */
-function Workspace({ project, onUpdate, onBack, onToast, onDownload }) {
-  const [activeTab, setActiveTab] = useState(project.type === 'single' ? 'html' : 'html');
-  const [layout, setLayout] = useState(() => localStorage.getItem(LS_KEY_LAYOUT) || (project.type === 'single' ? 'unified' : 'split'));
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [renameVal, setRenameVal] = useState(project.name);
-  const [tunnel, setTunnel] = useState(null); // { link, expiresAt }
-  const [previewKey, setPreviewKey] = useState(0);
-  const [previewSrc, setPreviewSrc] = useState("");
-  const renameRef = useRef(null);
-  useIcons();
-
-  // Persist layout choice
-  useEffect(() => { localStorage.setItem(LS_KEY_LAYOUT, layout); }, [layout]);
-
-  // Update preview iframe whenever code changes (debounced).
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setPreviewSrc(buildPreviewDoc(project));
-    }, 280);
-    return () => clearTimeout(t);
-  }, [project.html, project.css, project.js, project.type]);
-
-  useEffect(() => {
-    if (renameOpen) {
-      setRenameVal(project.name);
-      setTimeout(() => renameRef.current?.select(), 30);
-    }
-  }, [renameOpen]);
-
-  function patch(field, val) {
-    onUpdate({ ...project, [field]: val, updatedAt: Date.now() });
-  }
-
-  function commitRename() {
-    const next = (renameVal || "").trim() || "Untitled";
-    onUpdate({ ...project, name: next, updatedAt: Date.now() });
-    setRenameOpen(false);
-    onToast({ kind: 'success', msg: 'Renamed to ' + next });
-  }
-
-  function clearCurrent() {
-    if (!confirm('Clear contents of the "' + activeTab + '" pane?')) return;
-    patch(activeTab, "");
-    onToast({ kind: 'info', msg: 'Cleared ' + activeTab.toUpperCase() + ' pane' });
-  }
-
-  function removeTemplate() {
-    if (!confirm('Reset all panes to blank canvas? This cannot be undone.')) return;
-    onUpdate({
-      ...project,
-      html: "", css: "", js: "",
-      updatedAt: Date.now()
-    });
-    onToast({ kind: 'info', msg: 'Template cleared' });
-  }
-
-  function buildPreviewDoc(p) {
-    if (p.type === 'single') {
-      return p.html || "<!doctype html><title>Empty</title><body style='font-family:sans-serif;color:#64748b;padding:24px'>Empty document.</body>";
-    }
-    return `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${p.css || ''}</style></head><body>${p.html || ''}<script>try{${p.js || ''}}catch(e){var b=document.createElement('div');b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fee2e2;padding:8px;font:12px monospace;z-index:99999';b.textContent='Error: '+(e&&e.stack?e.stack:String(e));document.body.appendChild(b);}<\/script></body></html>`;
-  }
-
-  async function spinUpTunnel() {
     try {
-      const payload = JSON.stringify({
-        type: project.type,
-        html: project.html || "",
-        css:  project.css  || "",
-        js:   project.js   || ""
-      });
-      const compressed = window.LZString.compressToBase64(payload);
-      const expiresAt = Date.now() + 15 * 60 * 1000; // 15 min
-      const base = location.pathname.replace(/index\.html$/, '').replace(/\/$/, '') + '/';
-      const link = location.origin + base + 'preview.html?p=' + encodeURIComponent(compressed) + '&exp=' + expiresAt;
-      setTunnel({ link, expiresAt });
-      onToast({ kind: 'success', msg: 'Tunnel live for 15 min' });
-    } catch (e) {
-      onToast({ kind: 'error', msg: 'Tunnel failed: ' + (e && e.message ? e.message : String(e)) });
+      var stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      log('camera granted — tracks: ' + stream.getTracks().length);
+      stream.getTracks().forEach(function (t) { t.stop(); });
+    } catch (err) {
+      log('camera denied: ' + err.name + ' — ' + err.message);
     }
-  }
+  });
+<\/script>
+</body>
+</html>
+`;
 
-  function revokeTunnel() {
-    setTunnel(null);
-    onToast({ kind: 'info', msg: 'Tunnel revoked' });
-  }
+const TPL_SPLIT_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Split Component App</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <p class="tag">Browser Tunnel · Split Build</p>
+    <h1 id="headline">Three files, one tunnel.</h1>
+    <p class="lede">
+      HTML, CSS and JavaScript are authored separately, then fused into a single
+      document at tunnel time and preview time.
+    </p>
+    <button id="ping" type="button">Ping the runtime</button>
+    <ul id="out"></ul>
+  </main>
+<script src="app.js"><\/script>
+</body>
+</html>
+`;
 
-  // Effective tabs available
-  const tabs = project.type === 'single'
-    ? [{ id: 'html', label: 'HTML' }]
-    : [{ id: 'html', label: 'HTML' }, { id: 'css', label: 'CSS' }, { id: 'js', label: 'JS' }];
+const TPL_SPLIT_CSS = `:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; display: grid; place-items: center;
+  background: radial-gradient(circle at 70% 15%, #6d28d9 0, #020617 60%);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #e2e8f0; padding: 24px;
+}
+.shell {
+  max-width: 560px; width: 100%; padding: 28px; border-radius: 18px;
+  background: rgba(15, 23, 42, .82); border: 1px solid rgba(30, 41, 59, .8);
+  box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .9);
+}
+.tag { font: 700 11px/1 ui-monospace, Menlo, monospace; letter-spacing: .16em; text-transform: uppercase; color: #a78bfa; }
+h1 { font-size: 26px; margin: 14px 0 10px; letter-spacing: -.02em; }
+.lede { margin: 0 0 18px; color: #94a3b8; line-height: 1.65; font-size: 14px; }
+button {
+  font: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+  background: #a78bfa; color: #150a2e; border: 0; padding: 11px 16px; border-radius: 10px;
+}
+button:hover { background: #c4b5fd; }
+#out { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 6px; }
+#out li {
+  font: 400 12px/1.6 ui-monospace, Menlo, monospace; color: #94a3b8;
+  background: #0b1220; border: 1px solid #1e293b; border-radius: 8px; padding: 8px 10px;
+}
+`;
 
-  // Show split if multi-file and layout=split; otherwise unified single column.
-  const showSplit = project.type === 'multi' && layout === 'split';
+const TPL_SPLIT_JS = `/* Split build runtime */
+const out = document.getElementById('out');
+let hits = 0;
+
+function line(text) {
+  const li = document.createElement('li');
+  li.textContent = text;
+  out.appendChild(li);
+}
+
+document.getElementById('ping').addEventListener('click', () => {
+  hits += 1;
+  line('ping #' + hits + ' → ' + new Date().toLocaleTimeString());
+});
+
+line('booted at ' + new Date().toISOString());
+line('origin: ' + location.origin);
+line('top-level: ' + (window.top === window.self));
+`;
+
+const BLANK_SINGLE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Untitled</title>
+</head>
+<body>
+
+<\/body>
+</html>
+`;
+
+function newProject(name, type, imported) {
+  const now = new Date().toISOString();
+  const files = type === 'single'
+    ? { html: imported && imported.html ? imported.html : TPL_SINGLE, css: '', js: '' }
+    : {
+        html: imported && imported.html ? imported.html : TPL_SPLIT_HTML,
+        css: imported && imported.css ? imported.css : TPL_SPLIT_CSS,
+        js: imported && imported.js ? imported.js : TPL_SPLIT_JS
+      };
+  return {
+    id: uid('proj'),
+    name: name && name.trim() ? name.trim() : 'Untitled Project',
+    type,
+    files,
+    createdAt: now,
+    updatedAt: now,
+    lastTunnel: null
+  };
+}
+
+/* -----------------------------------------------------------------------------
+   Icon runtime — drives the Lucide UMD data set directly (no lucide-react needed)
+   -------------------------------------------------------------------------- */
+const LUCIDE = window.lucide || {};
+function resolveIcon(name) {
+  if (LUCIDE[name]) return LUCIDE[name];
+  const kebab = String(name).replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+  if (LUCIDE[kebab]) return LUCIDE[kebab];
+  const pascal = kebab.split('-').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+  if (LUCIDE[pascal]) return LUCIDE[pascal];
+  return LUCIDE.Circle || null;
+}
+
+const Icon = React.memo(function Icon({ name, size = 16, strokeWidth = 2, className = '' }) {
+  const node = useMemo(() => {
+    const data = resolveIcon(name);
+    if (!data) {
+      return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} className={className} />;
+    }
+    const attrs = data[1] || {};
+    const children = data[2] || [];
+    const props = { viewBox: attrs.viewBox || '0 0 24 24', fill: attrs.fill || 'none', stroke: attrs.stroke || 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', width: size, height: size, className };
+    return (
+      <svg {...props}>
+        {children.map((child, i) => React.createElement(child[0], Object.assign({ key: i }, child[1])))}
+      </svg>
+    );
+  }, [name, size, strokeWidth, className]);
+  return node;
+});
+
+/* -----------------------------------------------------------------------------
+   Toast bus
+   -------------------------------------------------------------------------- */
+const toastBus = { subs: new Set(), push(t) { this.subs.forEach((fn) => fn(t)); } };
+function toast(message, kind = 'info', duration = 3600) {
+  toastBus.push({ message, kind, duration, key: uid('toast') });
+}
+
+/* -----------------------------------------------------------------------------
+   Design atoms
+   -------------------------------------------------------------------------- */
+const BTN_VARIANTS = {
+  primary: 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 active:bg-cyan-300 shadow-lg shadow-cyan-500/25 border border-cyan-400/40',
+  violet: 'bg-violet-500 text-white hover:bg-violet-400 active:bg-violet-300 shadow-lg shadow-violet-500/25 border border-violet-400/40',
+  solid: 'bg-slate-800 text-slate-100 hover:bg-slate-700 active:bg-slate-600 border border-slate-700/70',
+  outline: 'bg-transparent text-slate-300 hover:text-white hover:bg-slate-800/70 border border-slate-700/70',
+  ghost: 'bg-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 border border-transparent',
+  danger: 'bg-rose-500/90 text-white hover:bg-rose-500 active:bg-rose-400 border border-rose-400/40 shadow-lg shadow-rose-500/20',
+  success: 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 border border-emerald-400/40 shadow-lg shadow-emerald-500/20'
+};
+const BTN_SIZES = { xs: 'text-[11px] px-2 py-1 gap-1.5 rounded-md', sm: 'text-xs px-2.5 py-1.5 gap-1.5 rounded-lg', md: 'text-[13px] px-3.5 py-2 gap-2 rounded-lg', lg: 'text-sm px-5 py-2.5 gap-2 rounded-xl' };
+
+function Btn({ children, icon, iconRight, variant = 'ghost', size = 'sm', className = '', disabled, title, ...rest }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      disabled={disabled}
+      className={[
+        'inline-flex items-center justify-center font-semibold tracking-tight transition-all duration-150 bt-focus select-none',
+        'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none',
+        BTN_SIZES[size], BTN_VARIANTS[variant], className
+      ].join(' ')}
+      {...rest}
+    >
+      {icon ? <Icon name={icon} size={size === 'lg' ? 17 : size === 'md' ? 15 : 13} /> : null}
+      {children ? <span className="truncate">{children}</span> : null}
+      {iconRight ? <Icon name={iconRight} size={size === 'lg' ? 17 : size === 'md' ? 15 : 13} /> : null}
+    </button>
+  );
+}
+
+function Badge({ children, tone = 'slate', icon, className = '' }) {
+  const tones = {
+    slate: 'border-slate-700/70 bg-slate-800/60 text-slate-300',
+    cyan: 'border-cyan-500/35 bg-cyan-500/10 text-cyan-300',
+    violet: 'border-violet-500/35 bg-violet-500/10 text-violet-300',
+    emerald: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-300',
+    amber: 'border-amber-500/35 bg-amber-500/10 text-amber-300',
+    rose: 'border-rose-500/35 bg-rose-500/10 text-rose-300'
+  };
+  return (
+    <span className={['inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[.12em]', tones[tone] || tones.slate, className].join(' ')}>
+      {icon ? <Icon name={icon} size={11} /> : null}
+      {children}
+    </span>
+  );
+}
+
+function Spinner({ size = 16, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={'animate-bt-spin ' + className}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity=".22" strokeWidth="2.5" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Modal({ open, onClose, title, subtitle, icon, tone = 'cyan', children, footer, width = 'max-w-lg', dismissable = true }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape' && dismissable) onClose && onClose(); };
+    window.addEventListener('keydown', onKey);
+    document.body.classList.add('bt-no-scroll');
+    const t = setTimeout(() => { if (ref.current) ref.current.focus(); }, 30);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.classList.remove('bt-no-scroll');
+      clearTimeout(t);
+    };
+  }, [open, onClose, dismissable]);
+
+  if (!open) return null;
+  const toneRing = { cyan: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300', violet: 'border-violet-500/30 bg-violet-500/10 text-violet-300', rose: 'border-rose-500/30 bg-rose-500/10 text-rose-300', amber: 'border-amber-500/30 bg-amber-500/10 text-amber-300' }[tone];
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Workspace header */}
-      <div className="glass border-b border-slate-800/60 px-3 py-2 flex items-center gap-3">
-        <button onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-1 text-sm">
-          <Icon name="arrow-left" size={16} />
-          <span className="hidden sm:inline">Dashboard</span>
-        </button>
-        <div className="h-5 w-px bg-slate-800" />
-        {renameOpen ? (
-          <div className="flex items-center gap-1">
-            <input ref={renameRef} value={renameVal}
-              onChange={(e) => setRenameVal(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenameOpen(false); }}
-              className="bg-slate-900 border border-sky-500/50 rounded-md px-2 py-1 text-sm text-slate-100 focus:border-sky-500" />
-            <button onClick={commitRename} className="p-1.5 rounded-md bg-sky-500/20 text-sky-300 hover:bg-sky-500/30">
-              <Icon name="check" size={14} />
-            </button>
-            <button onClick={() => setRenameOpen(false)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800">
-              <Icon name="x" size={14} />
-            </button>
-          </div>
-        ) : (
-          <button onClick={() => setRenameOpen(true)}
-            className="group flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-800/60 transition">
-            <Icon name="file-code-2" size={14} className="text-slate-500" />
-            <span className="text-sm font-medium text-slate-200">{project.name}</span>
-            <Icon name="pencil" size={12} className="text-slate-600 group-hover:text-sky-400" />
-          </button>
-        )}
-        <div className="flex-1" />
-
-        {/* Layout toggle for multi-file */}
-        {project.type === 'multi' && (
-          <div className="hidden sm:flex items-center bg-slate-900/80 border border-slate-800 rounded-lg p-0.5">
-            <button onClick={() => setLayout('split')}
-              className={`px-2.5 py-1 rounded-md text-xs flex items-center gap-1 transition ${layout === 'split' ? 'bg-slate-800 text-sky-300' : 'text-slate-500 hover:text-slate-300'}`}>
-              <Icon name="columns-2" size={13} /> Split
-            </button>
-            <button onClick={() => setLayout('unified')}
-              className={`px-2.5 py-1 rounded-md text-xs flex items-center gap-1 transition ${layout === 'unified' ? 'bg-slate-800 text-sky-300' : 'text-slate-500 hover:text-slate-300'}`}>
-              <Icon name="square-stack" size={13} /> Unified
-            </button>
-          </div>
-        )}
-
-        {/* Utility actions */}
-        <button onClick={clearCurrent}
-          title="Clear current pane"
-          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
-          <Icon name="eraser" size={16} />
-        </button>
-        <button onClick={removeTemplate}
-          title="Remove template / blank canvas"
-          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-300 transition">
-          <Icon name="file-x-2" size={16} />
-        </button>
-        <button onClick={onDownload}
-          title="Download project"
-          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
-          <Icon name="download" size={16} />
-        </button>
-        <div className="h-5 w-px bg-slate-800 mx-1" />
-        <button onClick={spinUpTunnel}
-          className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center gap-1.5 shadow-lg shadow-sky-500/20 animate-pulse-glow transition">
-          <Icon name="rocket" size={14} /> Spin Up Tunnel
-        </button>
-      </div>
-
-      {/* Workspace body */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-800/40 overflow-hidden">
-        {/* Editor column */}
-        <div className="bg-slate-950 flex flex-col min-h-0">
-          {/* Tab bar (only show tabs for multi-file) */}
-          {project.type === 'multi' && (
-            <div className="flex items-center bg-slate-900/60 border-b border-slate-800/60 px-1">
-              {tabs.map((t) => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)}
-                  className={`px-3 py-2 text-xs font-medium border-b-2 transition flex items-center gap-1.5
-                    ${activeTab === t.id
-                      ? 'border-sky-500 text-sky-300 bg-slate-800/40'
-                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}>
-                  <Icon name={t.id === 'html' ? "file-code-2" : t.id === 'css' ? "palette" : "braces"} size={13} />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex-1 min-h-0 overflow-hidden">
-            {showSplit ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/40 h-full">
-                <div className="bg-slate-950 min-h-0 overflow-hidden">
-                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-orange-300 flex items-center gap-1">
-                    <Icon name="file-code-2" size={11} /> HTML
-                  </div>
-                  <div className="h-[calc(100%-28px)]"><EditorPane lang="html" value={project.html} onChange={(v) => patch('html', v)} placeholder="<!-- HTML markup -->" /></div>
-                </div>
-                <div className="bg-slate-950 min-h-0 overflow-hidden">
-                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-sky-300 flex items-center gap-1">
-                    <Icon name="palette" size={11} /> CSS
-                  </div>
-                  <div className="h-[calc(100%-28px)]"><EditorPane lang="css" value={project.css} onChange={(v) => patch('css', v)} placeholder="/* CSS rules */" /></div>
-                </div>
-                <div className="bg-slate-950 min-h-0 overflow-hidden">
-                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-yellow-300 flex items-center gap-1">
-                    <Icon name="braces" size={11} /> JS
-                  </div>
-                  <div className="h-[calc(100%-28px)]"><EditorPane lang="js" value={project.js} onChange={(v) => patch('js', v)} placeholder="// JavaScript" /></div>
-                </div>
+    <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto p-4 sm:items-center" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 bg-slate-950/80 bt-glass animate-bt-fade" onClick={() => dismissable && onClose && onClose()} />
+      <div ref={ref} tabIndex={-1} className={['relative z-10 w-full outline-none animate-bt-pop', width].join(' ')}>
+        <div className="overflow-hidden rounded-2xl border border-slate-800/70 bg-slate-900/90 bt-glass shadow-2xl shadow-black/70">
+          {title ? (
+            <div className="flex items-start gap-3 border-b border-slate-800/60 px-5 py-4">
+              {icon ? <div className={['mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border', toneRing].join(' ')}><Icon name={icon} size={17} /></div> : null}
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-sm font-semibold text-slate-100">{title}</h2>
+                {subtitle ? <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{subtitle}</p> : null}
               </div>
-            ) : (
-              <EditorPane lang={activeTab} value={project[activeTab] || ""} onChange={(v) => patch(activeTab, v)} placeholder={`Write ${activeTab.toUpperCase()} here...`} />
-            )}
-          </div>
-        </div>
-
-        {/* Preview column */}
-        <div className="bg-slate-950 flex flex-col min-h-0 min-w-0">
-          <div className="bg-slate-900/60 border-b border-slate-800/60 px-3 py-2 flex items-center gap-2">
-            <Icon name="eye" size={14} className="text-slate-400" />
-            <span className="text-xs text-slate-300 font-medium">Live preview</span>
-            <div className="flex-1" />
-            <button onClick={() => setPreviewKey(k => k + 1)} title="Refresh preview"
-              className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-sky-300 transition">
-              <Icon name="refresh-cw" size={13} />
-            </button>
-          </div>
-          <div className="flex-1 min-h-0">
-            <iframe key={previewKey} title="preview" srcDoc={previewSrc} sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
-              className="w-full h-full bg-white border-0" />
-          </div>
+              {dismissable ? (
+                <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-800/70 hover:text-slate-200 bt-focus" aria-label="Close">
+                  <Icon name="X" size={16} />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="px-5 py-5">{children}</div>
+          {footer ? <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-800/60 bg-slate-950/40 px-5 py-3.5">{footer}</div> : null}
         </div>
       </div>
-
-      {tunnel && <TunnelOverlay link={tunnel.link} expiresAt={tunnel.expiresAt} onRevoke={revokeTunnel} />}
     </div>
   );
 }
 
-/* ----- Dashboard -------------------------------------------------- */
-function Dashboard({ projects, onOpen, onCreate, onRename, onDelete, onDownload }) {
-  const [query, setQuery] = useState("");
-  const filtered = useMemo(() => {
-    if (!query.trim()) return projects;
-    const q = query.toLowerCase();
-    return projects.filter(p => (p.name || '').toLowerCase().includes(q));
-  }, [projects, query]);
+function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', tone = 'danger', onCancel, onConfirm }) {
+  return (
+    <Modal
+      open={open}
+      onClose={onCancel}
+      title={title}
+      icon="AlertTriangle"
+      tone={tone}
+      width="max-w-md"
+      footer={
+        <>
+          <Btn variant="outline" size="md" onClick={onCancel}>Cancel</Btn>
+          <Btn variant={tone === 'danger' ? 'danger' : 'primary'} size="md" onClick={onConfirm} icon="Check">{confirmLabel}</Btn>
+        </>
+      }
+    >
+      <p className="text-sm leading-relaxed text-slate-400">{message}</p>
+    </Modal>
+  );
+}
+
+function Toasts({ items }) {
+  const tones = {
+    info: 'border-slate-700/70 bg-slate-900/92 text-slate-200',
+    success: 'border-emerald-500/40 bg-emerald-950/80 text-emerald-100',
+    error: 'border-rose-500/40 bg-rose-950/80 text-rose-100',
+    warn: 'border-amber-500/40 bg-amber-950/80 text-amber-100'
+  };
+  const icons = { info: 'Info', success: 'CheckCircle2', error: 'AlertOctagon', warn: 'AlertTriangle' };
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[95] flex w-[min(92vw,380px)] flex-col gap-2">
+      {items.map((t) => (
+        <div key={t.key} className={['pointer-events-auto flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-[12.5px] leading-snug shadow-2xl shadow-black/60 bt-glass animate-bt-slide-left', tones[t.kind] || tones.info].join(' ')}>
+          <Icon name={icons[t.kind] || 'Info'} size={15} className="mt-0.5 shrink-0" />
+          <span className="flex-1">{t.message}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ icon, title, message, action }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-dashed border-slate-800/80 bg-slate-900/40 px-8 py-16 text-center">
+      <div className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(500px 220px at 50% 0%, rgba(34,211,238,.10), transparent 70%)' }} />
+      <div className="relative">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-800/80 bg-slate-950/70 text-cyan-400 animate-bt-float">
+          <Icon name={icon} size={28} />
+        </div>
+        <h3 className="text-base font-semibold tracking-tight text-slate-100">{title}</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-500">{message}</p>
+        {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, hint, children, required }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[.14em] text-slate-400">
+        {label}{required ? <span className="text-cyan-400">*</span> : null}
+      </span>
+      {children}
+      {hint ? <span className="mt-1.5 block text-[11px] leading-relaxed text-slate-500">{hint}</span> : null}
+    </label>
+  );
+}
+
+const inputCls = 'w-full rounded-lg border border-slate-800/80 bg-slate-950/70 px-3 py-2 text-[13px] text-slate-100 placeholder-slate-600 outline-none transition focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 bt-focus';
+
+/* -----------------------------------------------------------------------------
+   Dashboard
+   -------------------------------------------------------------------------- */
+function ProjectCard({ project, onOpen, onRename, onDownload, onDelete }) {
+  const [confirming, setConfirming] = useState(false);
+  const size = Object.keys(project.files).reduce((acc, k) => acc + ((project.files[k] || '').length), 0);
+  const tunnel = project.lastTunnel;
 
   return (
-    <div className="min-h-[calc(100vh-57px)] grid-bg">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Hero */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[.25em] text-sky-400/80 mb-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
-            Backendless Web Dev Studio
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-100 mb-2">
-            Browser Tunnel <span className="text-sky-400">IDE</span>
-          </h1>
-          <p className="text-slate-400 max-w-xl text-sm sm:text-base">
-            Build single-file or split HTML/CSS/JS projects entirely in your browser. Spin up ephemeral 15-minute tunnels and ship clean top-level preview URLs — no servers, no iframes.
-          </p>
-        </div>
-
-        {/* Search + new */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search projects…"
-              className="w-full glass border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-sky-500/50" />
-          </div>
-          <button onClick={onCreate}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition">
-            <Icon name="plus" size={16} /> New Project
-          </button>
-        </div>
-
-        {/* Project grid */}
-        {filtered.length === 0 ? (
-          <div className="glass border border-dashed border-slate-800 rounded-2xl py-16 text-center">
-            <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center">
-              <Icon name={query ? "search-x" : "folder-open"} size={26} className="text-slate-600" />
-            </div>
-            <h3 className="text-slate-300 font-medium mb-1">
-              {query ? "No matching projects" : "No projects yet"}
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">
-              {query ? "Try a different search term." : "Spin up your first project — it lives entirely in your browser."}
+    <>
+      <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/80 bt-glass p-4 bt-card-hover animate-bt-rise">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100"
+             style={{ background: project.type === 'single' ? 'rgba(34,211,238,.18)' : 'rgba(167,139,250,.18)' }} />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <button type="button" onClick={onOpen} className="block max-w-full truncate text-left text-[15px] font-semibold tracking-tight text-slate-100 transition hover:text-cyan-300 bt-focus">
+              {project.name}
+            </button>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
+              <span className="inline-flex items-center gap-1"><Icon name="CalendarPlus" size={11} />{fmtDate(project.createdAt)}</span>
+              <span className="text-slate-700">•</span>
+              <span className="inline-flex items-center gap-1"><Icon name="PencilRuler" size={11} />{relTime(project.updatedAt)}</span>
             </p>
-            {!query && (
-              <button onClick={onCreate}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-200 border border-slate-700 inline-flex items-center gap-2">
-                <Icon name="plus" size={14} /> Create project
-              </button>
-            )}
           </div>
+          <Badge tone={project.type === 'single' ? 'cyan' : 'violet'} icon={project.type === 'single' ? 'FileCode2' : 'Layers'}>
+            {project.type === 'single' ? 'Single HTML' : 'Multi-file'}
+          </Badge>
+        </div>
+
+        <div className="relative mt-4 grid grid-cols-3 gap-2 text-center">
+          {[['Files', project.type === 'single' ? '1' : '3'], ['Size', bytes(size)], ['Tunnels', tunnel ? '1' : '0']].map(([k, v]) => (
+            <div key={k} className="rounded-lg border border-slate-800/60 bg-slate-950/50 px-2 py-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-[.12em] text-slate-500">{k}</div>
+              <div className="mt-0.5 text-[12px] font-semibold text-slate-300">{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {tunnel ? (
+          <p className="relative mt-3 flex items-center gap-1.5 truncate text-[11px] text-slate-500">
+            <Icon name="Radio" size={11} className="text-emerald-400" />
+            <span className="truncate">Last tunnel {relTime(new Date(tunnel.createdAt).toISOString())}</span>
+          </p>
+        ) : null}
+
+        <div className="relative mt-4 flex flex-wrap items-center gap-1.5 border-t border-slate-800/60 pt-3">
+          <Btn variant="primary" size="sm" icon="SquarePen" onClick={onOpen}>Open</Btn>
+          <Btn variant="outline" size="sm" icon="PencilLine" onClick={onRename} title="Rename project">Rename</Btn>
+          <Btn variant="ghost" size="sm" icon="Download" onClick={onDownload} title="Download project" />
+          <Btn variant="ghost" size="sm" icon="Trash2" onClick={() => setConfirming(true)} title="Delete project" className="ml-auto hover:text-rose-300 hover:bg-rose-500/10" />
+        </div>
+      </article>
+
+      <ConfirmDialog
+        open={confirming}
+        title="Delete this project?"
+        message={'“' + project.name + '” and all of its files will be permanently removed from this browser. This cannot be undone.'}
+        confirmLabel="Delete project"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => { setConfirming(false); onDelete(); }}
+      />
+    </>
+  );
+}
+
+function Dashboard({ projects, onNew, onOpen, onRename, onDownload, onDelete, storageOk }) {
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('recent');
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = projects.filter((p) => !q || p.name.toLowerCase().includes(q) || p.type.includes(q));
+    list = list.slice().sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      if (sort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sort === 'size') {
+        const sz = (p) => Object.keys(p.files).reduce((acc, k) => acc + (p.files[k] || '').length, 0);
+        return sz(b) - sz(a);
+      }
+      return new Date(b.updatedAt) - new Date(a.updatedAt);
+    });
+    return list;
+  }, [projects, query, sort]);
+
+  const single = projects.filter((p) => p.type === 'single').length;
+
+  return (
+    <div className="relative mx-auto w-full max-w-[1400px] px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="animate-bt-rise">
+          <div className="flex items-center gap-2.5">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-violet-500/10 text-cyan-300">
+              <Icon name="Rocket" size={21} />
+              <span className="bt-caret-ring rounded-xl" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-slate-50 sm:text-2xl">Browser Tunnel</h1>
+              <p className="text-[12px] text-slate-500">Backendless web IDE · iframe-free deployment tunnels</p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Badge tone="cyan" icon="FolderKanban">{projects.length} project{projects.length === 1 ? '' : 's'}</Badge>
+            <Badge tone="violet" icon="FileCode2">{single} single-file</Badge>
+            <Badge tone="slate" icon="Layers">{projects.length - single} multi-file</Badge>
+            <Badge tone={storageOk ? 'emerald' : 'rose'} icon={storageOk ? 'Database' : 'DatabaseZap'}>
+              {storageOk ? 'LocalStorage online' : 'Storage blocked'}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:items-end animate-bt-rise">
+          <Btn variant="primary" size="lg" icon="Plus" onClick={onNew} className="w-full sm:w-auto">
+            New Project
+          </Btn>
+          <p className="text-[11px] text-slate-500">Everything persists in this browser — no backend, no account.</p>
+        </div>
+      </header>
+
+      {projects.length > 0 ? (
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Icon name="Search" size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search projects by name or structure…"
+              className={inputCls + ' pl-9'}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Icon name="ArrowUpDown" size={14} className="text-slate-500" />
+            <select value={sort} onChange={(e) => setSort(e.target.value)} className={inputCls + ' w-auto cursor-pointer pr-8'}>
+              <option value="recent">Recently edited</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="size">Largest first</option>
+            </select>
+          </div>
+        </div>
+      ) : null}
+
+      <section className="mt-6">
+        {projects.length === 0 ? (
+          <EmptyState
+            icon="FolderPlus"
+            title="No projects yet"
+            message="Spin up your first workspace. Choose a single unified HTML file or a split HTML / CSS / JS component view — then push it live through a tunnel URL."
+            action={<Btn variant="primary" size="lg" icon="Plus" onClick={onNew}>Create your first project</Btn>}
+          />
+        ) : visible.length === 0 ? (
+          <EmptyState icon="SearchX" title="No matches" message={'Nothing matched “' + query + '”. Try a different search term or clear the filter.'} action={<Btn variant="outline" size="md" icon="X" onClick={() => setQuery('')}>Clear search</Btn>} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((p, i) => (
-              <ProjectCard key={p.id} project={p} index={i}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {visible.map((p) => (
+              <ProjectCard
+                key={p.id}
+                project={p}
                 onOpen={() => onOpen(p.id)}
-                onRename={() => onRename(p.id)}
-                onDelete={() => onDelete(p.id)}
-                onDownload={() => onDownload(p.id)} />
+                onRename={() => onRename(p)}
+                onDownload={() => onDownload(p)}
+                onDelete={() => onDelete(p)}
+              />
             ))}
           </div>
         )}
+      </section>
 
-        <div className="mt-12 text-center text-xs text-slate-600">
-          <p>Browser Tunnel IDE · 100% client-side · LocalStorage persistence · No backend</p>
+      <footer className="mt-14 flex flex-col items-center gap-2 border-t border-slate-800/50 pt-6 text-center">
+        <p className="text-[11px] leading-relaxed text-slate-600">
+          Browser Tunnel v{APP_VERSION} · React 18 · Tailwind 3.4 · Lucide · lz-string · JSZip — all via pinned CDNs.
+          Tunnels are encoded in the URL itself and self-destruct after 15 minutes.
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------------------------
+   New-project wizard (two sequential steps)
+   -------------------------------------------------------------------------- */
+function NewProjectModal({ open, onClose, onCreate }) {
+  const [step, setStep] = useState(1);
+  const [type, setType] = useState(null);
+  const [name, setName] = useState('');
+  const [imported, setImported] = useState(null);
+  const [importName, setImportName] = useState('');
+  const [error, setError] = useState('');
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (open) { setStep(1); setType(null); setName(''); setImported(null); setImportName(''); setError(''); }
+  }, [open]);
+
+  const pickStructure = (t) => { setType(t); setError(''); setStep(2); };
+
+  const handleFile = (file) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { setError('That file is larger than 2 MB — import a smaller source file.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const slot = ext === 'css' ? 'css' : (ext === 'js' || ext === 'mjs' ? 'js' : 'html');
+      setImported((prev) => Object.assign({}, prev, { [slot]: text }));
+      setImportName(file.name);
+      setError('');
+      if (!name.trim()) setName(file.name.replace(/\.[^.]+$/, ''));
+      toast('Imported ' + file.name + ' → ' + slot.toUpperCase() + ' pane', 'success');
+    };
+    reader.onerror = () => setError('That file could not be read. Try another file.');
+    reader.readAsText(file);
+  };
+
+  const submit = () => {
+    if (!name.trim()) { setError('Give your project a name to continue.'); return; }
+    onCreate(name, type, imported);
+  };
+
+  const structures = [
+    {
+      key: 'single', icon: 'FileCode2', tone: 'cyan',
+      title: 'Single Unified HTML File',
+      desc: 'One document holds markup, styles and script. Fastest path to a tunnel — ideal for demos, prototypes and shareable single-page builds.',
+      points: ['1 editable pane', 'Instant tunnel encoding', 'Downloads as a clean .html']
+    },
+    {
+      key: 'split', icon: 'Layers', tone: 'violet',
+      title: 'Split Component View',
+      desc: 'Author HTML, CSS and JavaScript in separate panes. Fused into one document at preview and tunnel time, exported as a .zip structure.',
+      points: ['3 isolated panes', 'Live fused preview', 'Downloads as a .zip']
+    }
+  ];
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={step === 1 ? 'Choose a project structure' : 'Project metadata'}
+      subtitle={step === 1 ? 'Step 1 of 2 — how should your workspace be laid out?' : 'Step 2 of 2 — name it, optionally seed it from a local file.'}
+      icon={step === 1 ? 'LayoutTemplate' : 'PencilRuler'}
+      tone={step === 1 ? 'cyan' : 'violet'}
+      width="max-w-2xl"
+      footer={
+        <>
+          {step === 2 ? <Btn variant="outline" size="md" icon="ArrowLeft" onClick={() => setStep(1)}>Back</Btn> : null}
+          <Btn variant="ghost" size="md" onClick={onClose}>Cancel</Btn>
+          {step === 2 ? <Btn variant="primary" size="md" icon="Sparkles" onClick={submit}>Create project</Btn> : null}
+        </>
+      }
+    >
+      <div className="mb-5 flex items-center gap-2">
+        {[1, 2].map((n) => (
+          <div key={n} className="flex flex-1 items-center gap-2">
+            <div className={['flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold transition',
+              step >= n ? 'border-cyan-400/60 bg-cyan-500/20 text-cyan-200' : 'border-slate-700 bg-slate-950/60 text-slate-500'].join(' ')}>
+              {step > n ? <Icon name="Check" size={12} /> : n}
+            </div>
+            <div className={['h-px flex-1 transition', step > n ? 'bg-cyan-500/50' : 'bg-slate-800'].join(' ')} />
+          </div>
+        ))}
+      </div>
+
+      {step === 1 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {structures.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => pickStructure(s.key)}
+              className={['group relative overflow-hidden rounded-xl border p-4 text-left transition-all duration-200 bt-focus',
+                'border-slate-800/70 bg-slate-950/60 hover:border-cyan-500/50 hover:bg-slate-900/80 hover:-translate-y-0.5'].join(' ')}
+            >
+              <div className={['mb-3 flex h-10 w-10 items-center justify-center rounded-lg border',
+                s.tone === 'cyan' ? 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300' : 'border-violet-500/30 bg-violet-500/10 text-violet-300'].join(' ')}>
+                <Icon name={s.icon} size={19} />
+              </div>
+              <h3 className="text-[13.5px] font-semibold tracking-tight text-slate-100">{s.title}</h3>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-slate-500">{s.desc}</p>
+              <ul className="mt-3 space-y-1">
+                {s.points.map((p) => (
+                  <li key={p} className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <Icon name="Dot" size={14} className={s.tone === 'cyan' ? 'text-cyan-400' : 'text-violet-400'} />{p}
+                  </li>
+                ))}
+              </ul>
+              <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 transition group-hover:text-cyan-300">
+                Select <Icon name="ArrowRight" size={12} />
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 rounded-lg border border-slate-800/70 bg-slate-950/50 px-3 py-2.5">
+            <Icon name={type === 'single' ? 'FileCode2' : 'Layers'} size={15} className={type === 'single' ? 'text-cyan-400' : 'text-violet-400'} />
+            <span className="text-[12px] text-slate-400">Structure:</span>
+            <span className="text-[12px] font-semibold text-slate-200">{type === 'single' ? 'Single Unified HTML File' : 'Split Component View'}</span>
+            <button type="button" onClick={() => setStep(1)} className="ml-auto text-[11px] font-semibold text-cyan-400 transition hover:text-cyan-300 bt-focus">Change</button>
+          </div>
+
+          <Field label="Project name" required hint="Used for the file name on download and for the tunnel payload title.">
+            <input autoFocus value={name} onChange={(e) => { setName(e.target.value); setError(''); }} placeholder="e.g. peerjs-signal-demo" className={inputCls} />
+          </Field>
+
+          <Field label="Import code from a local file" hint={type === 'single' ? 'Accepts .html / .htm — its contents seed the HTML pane.' : 'Accepts .html, .css or .js — each file lands in its matching pane. Import as many as you need.'}>
+            <div
+              onDragOver={(e) => { e.preventDefault(); }}
+              onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files && e.dataTransfer.files[0]); }}
+              className="rounded-xl border border-dashed border-slate-700/80 bg-slate-950/40 px-4 py-5 text-center transition hover:border-cyan-500/50 hover:bg-slate-900/50"
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".html,.htm,.css,.js,.mjs,.txt"
+                className="hidden"
+                onChange={(e) => { handleFile(e.target.files && e.target.files[0]); e.target.value = ''; }}
+              />
+              <Icon name="UploadCloud" size={22} className="mx-auto text-slate-500" />
+              <p className="mt-2 text-[12px] text-slate-400">
+                Drop a file here, or{' '}
+                <button type="button" onClick={() => fileRef.current && fileRef.current.click()} className="font-semibold text-cyan-400 underline decoration-dotted transition hover:text-cyan-300 bt-focus">
+                  browse
+                </button>
+              </p>
+              {importName ? (
+                <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] text-emerald-300">
+                  <Icon name="FileCheck2" size={12} />{importName}
+                </p>
+              ) : null}
+            </div>
+          </Field>
+
+          {error ? (
+            <p className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-200">
+              <Icon name="AlertCircle" size={14} />{error}
+            </p>
+          ) : null}
+        </div>
+      )}
+    </Modal>
+  );
+}
+/* =============================================================================
+   BROWSER TUNNEL — IDE CORE (part 2/3)
+   Syntax highlighter · code editor · live preview surface · tunnel overlay
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Lightweight tokenizers — escape first, wrap second, so markup can never break
+   -------------------------------------------------------------------------- */
+const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>]/g, (c) => ESC_MAP[c]); }
+
+function hlAttrs(src) {
+  let out = '', last = 0, m;
+  const re = /([A-Za-z_:][\w:.-]*)(\s*=\s*)("[^"]*"|'[^']*'|[^\s>]+)?/g;
+  while ((m = re.exec(src)) !== null) {
+    out += esc(src.slice(last, m.index));
+    out += '<span class="tk-attr">' + esc(m[1]) + '</span>';
+    if (m[2]) out += esc(m[2]);
+    if (m[3]) out += '<span class="tk-str">' + esc(m[3]) + '</span>';
+    last = re.lastIndex;
+    if (re.lastIndex === m.index) re.lastIndex++;
+  }
+  return out + esc(src.slice(last));
+}
+
+function hlHTML(code) {
+  let out = '', last = 0, m;
+  const re = /(<!--[\s\S]*?-->)|(<!DOCTYPE[^>]*>)|(<\/?)([A-Za-z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*?)(\/?>)/g;
+  while ((m = re.exec(code)) !== null) {
+    out += esc(code.slice(last, m.index));
+    if (m[1]) out += '<span class="tk-com">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tk-doc">' + esc(m[2]) + '</span>';
+    else {
+      out += '<span class="tk-punc">' + esc(m[3]) + '</span><span class="tk-tag">' + esc(m[4]) + '</span>';
+      out += hlAttrs(m[5] || '');
+      out += '<span class="tk-punc">' + esc(m[6]) + '</span>';
+    }
+    last = re.lastIndex;
+    if (re.lastIndex === m.index) re.lastIndex++;
+  }
+  return out + esc(code.slice(last));
+}
+
+function hlCSS(code) {
+  let out = '', last = 0, m;
+  const re = /(\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(@[\w-]+)|([{}();:,])|([A-Za-z-]+)(\s*:)|(#[0-9a-fA-F]{3,8}\b|\b\d+(?:\.\d+)?(?:px|em|rem|%|vh|vw|vmin|vmax|s|ms|deg|fr|ch|pt)?\b)|(!important)/g;
+  while ((m = re.exec(code)) !== null) {
+    out += esc(code.slice(last, m.index));
+    if (m[1]) out += '<span class="tk-com">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tk-str">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="tk-sel">' + esc(m[3]) + '</span>';
+    else if (m[4]) out += '<span class="tk-brace">' + esc(m[4]) + '</span>';
+    else if (m[5]) out += '<span class="tk-prop">' + esc(m[5]) + '</span>' + esc(m[6]);
+    else if (m[7]) out += '<span class="tk-num">' + esc(m[7]) + '</span>';
+    else if (m[8]) out += '<span class="tk-kw">' + esc(m[8]) + '</span>';
+    last = re.lastIndex;
+    if (re.lastIndex === m.index) re.lastIndex++;
+  }
+  return out + esc(code.slice(last));
+}
+
+const JS_KEYWORDS = 'const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|default|new|class|extends|super|this|import|export|from|as|await|async|try|catch|finally|throw|typeof|instanceof|in|of|delete|void|yield|static|get|set|null|undefined|true|false|NaN';
+
+function hlJS(code) {
+  let out = '', last = 0, m;
+  const re = new RegExp(
+    '(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)|("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`)|(\\b(?:' + JS_KEYWORDS + ')\\b)|(\\b[A-Za-z_$][\\w$]*)(?=\\s*\\()|(\\b\\d+(?:\\.\\d+)?\\b)|([{}()\\[\\];,.])', 'g');
+  while ((m = re.exec(code)) !== null) {
+    out += esc(code.slice(last, m.index));
+    if (m[1]) out += '<span class="tk-com">' + esc(m[1]) + '</span>';
+    else if (m[2]) out += '<span class="tk-str">' + esc(m[2]) + '</span>';
+    else if (m[3]) out += '<span class="tk-kw">' + esc(m[3]) + '</span>';
+    else if (m[4]) out += '<span class="tk-fn">' + esc(m[4]) + '</span>';
+    else if (m[5]) out += '<span class="tk-num">' + esc(m[5]) + '</span>';
+    else if (m[6]) out += '<span class="tk-brace">' + esc(m[6]) + '</span>';
+    last = re.lastIndex;
+    if (re.lastIndex === m.index) re.lastIndex++;
+  }
+  return out + esc(code.slice(last));
+}
+
+function highlight(code, lang) {
+  try {
+    if (lang === 'html') return hlHTML(code);
+    if (lang === 'css') return hlCSS(code);
+    return hlJS(code);
+  } catch (e) {
+    return esc(code);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Code editor — transparent textarea layered over a highlighted <pre>, with a
+   synchronised gutter. Tab inserts two spaces; Enter keeps the indentation.
+   -------------------------------------------------------------------------- */
+function CodePane({ lang, label, value, onChange, accent, badge }) {
+  const taRef = useRef(null);
+  const hlRef = useRef(null);
+  const gutterRef = useRef(null);
+
+  const syncScroll = useCallback(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    if (hlRef.current) { hlRef.current.scrollTop = ta.scrollTop; hlRef.current.scrollLeft = ta.scrollLeft; }
+    if (gutterRef.current) gutterRef.current.scrollTop = ta.scrollTop;
+  }, []);
+
+  useEffect(() => { syncScroll(); }, [value, syncScroll]);
+
+  const lines = useMemo(() => value.split('\n').length, [value]);
+  const html = useMemo(() => highlight(value, lang) + '\n', [value, lang]);
+
+  const onKeyDown = (e) => {
+    const ta = e.target;
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = ta.selectionStart, en = ta.selectionEnd;
+      const next = value.slice(0, s) + '  ' + value.slice(en);
+      onChange(next);
+      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s + 2; });
+      return;
+    }
+    if (e.key === 'Enter') {
+      const s = ta.selectionStart;
+      const lineStart = value.lastIndexOf('\n', s - 1) + 1;
+      const indentMatch = /^[ \t]*/.exec(value.slice(lineStart, s));
+      const indent = indentMatch ? indentMatch[0] : '';
+      if (indent) {
+        e.preventDefault();
+        const insert = '\n' + indent;
+        const next = value.slice(0, s) + insert + value.slice(ta.selectionEnd);
+        onChange(next);
+        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = s + insert.length; });
+      }
+    }
+  };
+
+  const accents = {
+    cyan: 'text-cyan-300',
+    violet: 'text-violet-300',
+    amber: 'text-amber-300'
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800/60 bg-slate-950/70">
+      <div className="flex items-center gap-2 border-b border-slate-800/60 bg-slate-900/60 px-3 py-2 bt-glass">
+        <Icon name={lang === 'html' ? 'FileCode2' : lang === 'css' ? 'Paintbrush' : 'Braces'} size={14} className={accents[accent] || 'text-slate-400'} />
+        <span className="text-[11px] font-semibold uppercase tracking-[.14em] text-slate-300">{label}</span>
+        {badge ? <span className="text-[10px] text-slate-500">{badge}</span> : null}
+        <span className="ml-auto flex items-center gap-3 font-mono text-[10.5px] text-slate-500">
+          <span>{lines} ln</span>
+          <span>{value.length} ch</span>
+        </span>
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <div ref={gutterRef} className="bt-gutter bt-code hidden shrink-0 sm:block" style={{ width: 56 }}>
+          {Array.from({ length: lines }, (_, i) => <span key={i}>{i + 1}</span>)}
+        </div>
+        <div className="bt-editor-wrap min-h-0 flex-1">
+          <pre ref={hlRef} aria-hidden="true" className="bt-hl bt-code bt-scroll" dangerouslySetInnerHTML={{ __html: html }} />
+          <textarea
+            ref={taRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onScroll={syncScroll}
+            onKeyDown={onKeyDown}
+            spellCheck={false}
+            wrap="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            aria-label={label + ' editor'}
+            className="bt-ta bt-code bt-scroll"
+          />
         </div>
       </div>
     </div>
   );
 }
 
-/* ----- Root App --------------------------------------------------- */
-function App() {
-  const [projects, setProjects] = useState(() => loadProjects());
-  const [activeId, setActiveId] = useState(() => localStorage.getItem(LS_KEY_ACTIVE) || null);
-  const [showNew, setShowNew] = useState(false);
-  const [toast, setToast] = useState(null);
-  useIcons();
-
-  // Persist projects
-  useEffect(() => {
-    saveProjects(projects);
-  }, [projects]);
-
-  // Persist activeId
-  useEffect(() => {
-    if (activeId) localStorage.setItem(LS_KEY_ACTIVE, activeId);
-    else localStorage.removeItem(LS_KEY_ACTIVE);
-  }, [activeId]);
-
-  // Register service worker
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const registered = localStorage.getItem(LS_KEY_SW_REG);
-    if (registered) {
-      // already registered once; just refresh registration
-      navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(err => {
-        console.warn("SW re-register failed:", err);
-      });
-      return;
-    }
-    navigator.serviceWorker.register("./sw.js", { scope: "./" })
-      .then(() => {
-        localStorage.setItem(LS_KEY_SW_REG, "1");
-      })
-      .catch(err => {
-        console.warn("SW registration failed:", err);
-      });
-  }, []);
-
-  const active = useMemo(() => projects.find(p => p.id === activeId), [projects, activeId]);
-
-  function updateActive(next) {
-    setProjects(prev => prev.map(p => p.id === next.id ? next : p));
-  }
-
-  function createProject({ name, type, html, css, js }) {
-    const proj = {
-      id: genId(),
-      name,
-      type,
-      html: html || "",
-      css:  css  || "",
-      js:   js   || "",
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    setProjects(prev => [proj, ...prev]);
-    setActiveId(proj.id);
-    setShowNew(false);
-    setToast({ kind: 'success', msg: 'Project created' });
-  }
-
-  function renameProject(id) {
-    const p = projects.find(x => x.id === id);
-    if (!p) return;
-    const next = prompt('Rename project', p.name);
-    if (next && next.trim()) {
-      setProjects(prev => prev.map(x => x.id === id ? { ...x, name: next.trim(), updatedAt: Date.now() } : x));
-      setToast({ kind: 'success', msg: 'Renamed to ' + next.trim() });
-    }
-  }
-
-  function deleteProject(id) {
-    const p = projects.find(x => x.id === id);
-    if (!p) return;
-    if (!confirm('Delete "' + p.name + '"? This cannot be undone.')) return;
-    setProjects(prev => prev.filter(x => x.id !== id));
-    if (activeId === id) setActiveId(null);
-    setToast({ kind: 'info', msg: 'Project deleted' });
-  }
-
-  async function downloadProject(id) {
-    const p = projects.find(x => x.id === id);
-    if (!p) return;
-    const safeName = (p.name || 'project').replace(/[^a-z0-9-_]+/gi, '_');
-    try {
-      if (p.type === 'single') {
-        const blob = new Blob([p.html || ""], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        triggerDownload(url, safeName + '.html');
-        URL.revokeObjectURL(url);
-      } else {
-        if (!window.JSZip) {
-          setToast({ kind: 'error', msg: 'JSZip not loaded' });
-          return;
-        }
-        const zip = new window.JSZip();
-        zip.file('index.html', `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${p.name}</title><link rel="stylesheet" href="styles.css"></head><body>${p.html || ''}<script src="script.js"><\/script></body></html>`);
-        zip.file('styles.css', p.css || '');
-        zip.file('script.js', p.js || '');
-        zip.file('README.md', `# ${p.name}\n\nGenerated by Browser Tunnel IDE.`);
-        const blob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(blob);
-        triggerDownload(url, safeName + '.zip');
-        URL.revokeObjectURL(url);
-      }
-      setToast({ kind: 'success', msg: 'Downloaded ' + (p.type === 'single' ? '.html' : '.zip') });
-    } catch (e) {
-      setToast({ kind: 'error', msg: 'Download failed: ' + (e && e.message ? e.message : String(e)) });
-    }
-  }
-
-  function triggerDownload(url, filename) {
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
+/* -----------------------------------------------------------------------------
+   Live preview surface (IDE-side, sandboxed srcDoc). The *tunnel* path is what
+   provides the iframe-free top-level document.
+   -------------------------------------------------------------------------- */
+function PreviewPane({ doc, onRefresh, onOpenTab, onPopOut }) {
+  const srcDoc = useMemo(() => doc, [doc]);
   return (
-    <ErrorBoundary>
-      <TopNav
-        onBackToDashboard={() => setActiveId(null)}
-        projectName={active ? active.name : null}
-        view={active ? 'workspace' : 'dashboard'} />
-
-      {active ? (
-        <Workspace
-          project={active}
-          onUpdate={updateActive}
-          onBack={() => setActiveId(null)}
-          onToast={setToast}
-          onDownload={() => downloadProject(active.id)} />
-      ) : (
-        <Dashboard
-          projects={projects}
-          onOpen={(id) => setActiveId(id)}
-          onCreate={() => setShowNew(true)}
-          onRename={renameProject}
-          onDelete={deleteProject}
-          onDownload={downloadProject} />
-      )}
-
-      {showNew && (
-        <NewProjectModal onClose={() => setShowNew(false)} onCreate={createProject} />
-      )}
-
-      <Toast toast={toast} onClose={() => setToast(null)} />
-    </ErrorBoundary>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-800/60 bg-slate-950/70">
+      <div className="flex items-center gap-2 border-b border-slate-800/60 bg-slate-900/60 px-3 py-2 bt-glass">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-rose-500/70" />
+          <span className="h-2 w-2 rounded-full bg-amber-500/70" />
+          <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
+        </span>
+        <div className="ml-2 flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-slate-800/70 bg-slate-950/70 px-2 py-1">
+          <Icon name="Globe" size={12} className="shrink-0 text-slate-500" />
+          <span className="truncate font-mono text-[10.5px] text-slate-400">localhost · live sandbox preview</span>
+        </div>
+        <Btn variant="ghost" size="xs" icon="RefreshCw" onClick={onRefresh} title="Reload preview" />
+        <Btn variant="ghost" size="xs" icon="ExternalLink" onClick={onOpenTab} title="Open in a new tab" />
+        <Btn variant="ghost" size="xs" icon="Maximize2" onClick={onPopOut} title="Full-screen preview" />
+      </div>
+      <iframe
+        title="Live preview"
+        srcDoc={srcDoc}
+        sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin allow-downloads"
+        className="min-h-0 flex-1 bg-white"
+        style={{ border: 0 }}
+      />
+    </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+/* -----------------------------------------------------------------------------
+   Tunnel overlay — countdown, clipboard, revoke
+   -------------------------------------------------------------------------- */
+function TunnelOverlay({ tunnel, onClose, onRevoke, onCopy, copied, baseUrl }) {
+  const [remaining, setRemaining] = useState(tunnel ? tunnel.exp - Date.now() : 0);
+
+  useEffect(() => {
+    if (!tunnel) return undefined;
+    setRemaining(tunnel.exp - Date.now());
+    const t = setInterval(() => setRemaining(tunnel.exp - Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [tunnel]);
+
+  if (!tunnel) return null;
+
+  const total = TUNNEL_TTL_MS;
+  const pct = Math.max(0, Math.min(100, (remaining / total) * 100));
+  const expired = remaining <= 0;
+  const R = 34;
+  const circ = 2 * Math.PI * R;
+
+  return (
+    <Modal
+      open={!!tunnel}
+      onClose={onClose}
+      title={expired ? 'Tunnel expired' : 'Tunnel server is live'}
+      subtitle={expired
+        ? 'The 15-minute window has elapsed. Spin up a new tunnel to mint a fresh link.'
+        : 'Your project is packed into the URL below and served as a native top-level document.'}
+      icon={expired ? 'TimerOff' : 'Rocket'}
+      tone={expired ? 'rose' : 'cyan'}
+      width="max-w-2xl"
+      footer={
+        <>
+          <Btn variant="outline" size="md" icon="ExternalLink" onClick={() => window.open(tunnel.url, '_blank', 'noopener')}>Open tunnel</Btn>
+          <Btn variant="danger" size="md" icon="OctagonX" onClick={onRevoke}>Revoke / Kill server</Btn>
+          <Btn variant="primary" size="md" icon={copied ? 'Check' : 'Copy'} onClick={onCopy}>{copied ? 'Copied!' : 'Copy live link'}</Btn>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
+          <div className="relative h-[92px] w-[92px] shrink-0">
+            <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
+              <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(30,41,59,.9)" strokeWidth="6" />
+              <circle
+                cx="40" cy="40" r={R} fill="none"
+                stroke={expired ? '#fb7185' : '#22d3ee'}
+                strokeWidth="6" strokeLinecap="round"
+                strokeDasharray={circ}
+                strokeDashoffset={circ - (pct / 100) * circ}
+                style={{ transition: 'stroke-dashoffset 1s linear' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={'font-mono text-[17px] font-bold ' + (expired ? 'text-rose-300' : 'text-cyan-200')}>{clock(remaining)}</span>
+              <span className="text-[9px] font-semibold uppercase tracking-[.16em] text-slate-500">left</span>
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-2 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <Badge tone={expired ? 'rose' : 'emerald'} icon={expired ? 'TimerOff' : 'Radio'}>
+                {expired ? 'Tunnel closed' : 'Tunnel active for: ' + clock(remaining)}
+              </Badge>
+              <Badge tone="slate" icon="Link2">{tunnel.payloadLength.toLocaleString()} chars</Badge>
+              <Badge tone="violet" icon="ShieldCheck">0 iframes</Badge>
+            </div>
+            <p className="text-[12.5px] leading-relaxed text-slate-400">
+              The service worker at <span className="font-mono text-slate-300">sw.js</span> intercepts this URL, decompresses the bundle
+              and returns it as a real <span className="font-mono text-slate-300">text/html</span> document — so WebRTC, PeerJS,
+              <span className="font-mono text-slate-300"> getUserMedia</span> and hardware permissions all run unrestricted.
+            </p>
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 sm:justify-start">
+              <Icon name="Clock" size={11} />
+              Expires {new Date(tunnel.exp).toLocaleTimeString()} · hard self-destruct after 15 minutes
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-800/70 bg-slate-950/70 p-3">
+          <div className="mb-2 flex items-center gap-2">
+            <Icon name="Link" size={13} className="text-cyan-400" />
+            <span className="text-[11px] font-semibold uppercase tracking-[.14em] text-slate-400">Live link</span>
+            <button type="button" onClick={onCopy} className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900 px-2 py-1 text-[10.5px] font-semibold text-slate-300 transition hover:border-cyan-500/40 hover:text-cyan-300 bt-focus">
+              <Icon name={copied ? 'Check' : 'Copy'} size={11} />{copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <textarea
+            readOnly
+            value={tunnel.url}
+            onFocus={(e) => e.target.select()}
+            rows={4}
+            className="bt-scroll w-full resize-none break-all rounded-lg border border-slate-800/60 bg-slate-950 px-2.5 py-2 font-mono text-[10.5px] leading-relaxed text-slate-400 outline-none"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><Icon name="Server" size={10} />{baseUrl}preview.html</span>
+            <span className="inline-flex items-center gap-1"><Icon name="Hash" size={10} />{tunnel.id.slice(0, 14)}</span>
+            {tunnel.warning ? (
+              <span className="inline-flex items-center gap-1 text-amber-300"><Icon name="AlertTriangle" size={10} />{tunnel.warning}</span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[
+            ['Share anywhere', 'Send the link to any device — the whole app travels inside it.', 'Send'],
+            ['Test hardware', 'Ask for camera, mic or geolocation from the previewed page.', 'Camera'],
+            ['Peer-to-peer', 'Drop in PeerJS and open two tunnel links to connect them.', 'Network']
+          ].map(([t, d, ic]) => (
+            <div key={t} className="rounded-lg border border-slate-800/60 bg-slate-900/50 p-3">
+              <Icon name={ic} size={14} className="text-slate-500" />
+              <div className="mt-1.5 text-[11.5px] font-semibold text-slate-300">{t}</div>
+              <p className="mt-0.5 text-[10.5px] leading-relaxed text-slate-500">{d}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="flex items-start gap-2 rounded-lg border border-slate-800/60 bg-slate-950/50 px-3 py-2 text-[11px] leading-relaxed text-slate-500">
+          <Icon name="Info" size={12} className="mt-0.5 shrink-0 text-slate-500" />
+          <span>
+            Revoking adds this tunnel id to the origin service worker's deny-list and clears it from the IDE. The hard
+            guarantee is the 15-minute expiry baked into the URL — no backend is involved anywhere in this pipeline.
+          </span>
+        </p>
+      </div>
+    </Modal>
+  );
+}
+/* =============================================================================
+   BROWSER TUNNEL — IDE CORE (part 3/3)
+   Workspace · document composition · tunnel engine · root app · boot sequence
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   Document composition — fuse split files into one standalone document
+   -------------------------------------------------------------------------- */
+function composeDocument(project) {
+  if (!project) return '';
+  const files = project.files || {};
+  if (project.type === 'single') return files.html || '';
+
+  let html = files.html || '';
+  const css = (files.css || '').trim();
+  const js = (files.js || '').trim();
+
+  const styleTag = css ? '<style>\n' + css + '\n</style>' : '';
+  const scriptTag = js ? '<script>\n' + js + '\n<\/script>' : '';
+
+  if (styleTag) {
+    if (/<\/head>/i.test(html)) html = html.replace(/<\/head>/i, styleTag + '\n</head>');
+    else html = styleTag + '\n' + html;
+  }
+  if (scriptTag) {
+    if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, scriptTag + '\n</body>');
+    else html = html + '\n' + scriptTag;
+  }
+  return html;
+}
+
+function baseUrl() {
+  return window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+}
+
+/* -----------------------------------------------------------------------------
+   Downloads
+   -------------------------------------------------------------------------- */
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function downloadProject(project) {
+  try {
+    const doc = composeDocument(project);
+    if (project.type === 'single') {
+      triggerDownload(new Blob([doc], { type: 'text/html;charset=utf-8' }), slug(project.name) + '.html');
+      toast('Downloaded ' + slug(project.name) + '.html', 'success');
+      return;
+    }
+    if (typeof JSZip === 'undefined') {
+      triggerDownload(new Blob([doc], { type: 'text/html;charset=utf-8' }), slug(project.name) + '.html');
+      toast('JSZip unavailable — exported the fused document instead', 'warn');
+      return;
+    }
+    const zip = new JSZip();
+    const root = zip.folder(slug(project.name));
+    root.file('index.html', doc);
+    root.file('style.css', project.files.css || '');
+    root.file('app.js', project.files.js || '');
+    root.file('source/index.html', project.files.html || '');
+    root.file('README.md',
+      '# ' + project.name + '\n\n' +
+      'Exported from Browser Tunnel on ' + new Date().toISOString() + '.\n\n' +
+      '## Contents\n' +
+      '- `index.html` — the fused, standalone document (markup + styles + script)\n' +
+      '- `style.css`, `app.js` — the individual source files\n' +
+      '- `source/index.html` — the original HTML shell\n\n' +
+      'Open `index.html` directly in a browser; it needs no build step and no server.\n');
+    zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }).then((blob) => {
+      triggerDownload(blob, slug(project.name) + '.zip');
+      toast('Downloaded ' + slug(project.name) + '.zip (4 files)', 'success');
+    }).catch((err) => {
+      toast('Zip packaging failed: ' + (err && err.message ? err.message : 'unknown error'), 'error');
+    });
+  } catch (err) {
+    toast('Download failed: ' + (err && err.message ? err.message : 'unknown error'), 'error');
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Workspace
+   -------------------------------------------------------------------------- */
+function Workspace({ project, onUpdate, onBack, onDelete }) {
+  const isSplit = project.type === 'split';
+  const [pane, setPane] = useState(isSplit ? 'html' : 'html');
+  const [mode, setMode] = useState(isSplit ? 'columns' : 'split');
+  const [renaming, setRenaming] = useState(false);
+  const [nameDraft, setNameDraft] = useState(project.name);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [confirm, setConfirm] = useState(null);
+  const [tunnel, setTunnel] = useState(null);
+  const [showTunnel, setShowTunnel] = useState(false);
+  const [swState, setSwState] = useState('checking');
+
+  const files = project.files;
+  const doc = useMemo(() => composeDocument(project), [project]);
+  const payload = useMemo(() => {
+    try { return typeof LZString !== 'undefined' ? LZString.compressToEncodedURIComponent(doc) : ''; }
+    catch (e) { return ''; }
+  }, [doc]);
+
+  /* ---- service worker lifecycle ---- */
+  useEffect(() => {
+    let alive = true;
+    if (!('serviceWorker' in navigator)) { setSwState('unsupported'); return undefined; }
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then((reg) => {
+        if (!alive) return;
+        setSwState(reg.active ? 'active' : 'installing');
+        if (!reg.active && reg.installing) {
+          reg.installing.addEventListener('statechange', (e) => {
+            if (alive && e.target.state === 'activated') setSwState('active');
+          });
+        }
+      })
+      .catch(() => { if (alive) setSwState('failed'); });
+    return () => { alive = false; };
+  }, []);
+
+  /* ---- keep the pane valid when the structure changes ---- */
+  useEffect(() => { if (!isSplit && pane !== 'html') setPane('html'); }, [isSplit, pane]);
+
+  /* ---- tunnel expiry watchdog ---- */
+  useEffect(() => {
+    if (!tunnel) return undefined;
+    const t = setInterval(() => {
+      if (Date.now() > tunnel.exp) {
+        setTunnel((cur) => cur);
+        clearInterval(t);
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [tunnel]);
+
+  const setFile = useCallback((key, value) => {
+    onUpdate({ files: Object.assign({}, files, { [key]: value }) });
+  }, [files, onUpdate]);
+
+  const renameCommit = () => {
+    const next = nameDraft.trim();
+    if (!next) { toast('A project name cannot be empty', 'warn'); setNameDraft(project.name); setRenaming(false); return; }
+    onUpdate({ name: next });
+    setRenaming(false);
+    toast('Renamed to “' + next + '”', 'success');
+  };
+
+  const clearPane = () => {
+    const keys = isSplit ? [pane] : ['html'];
+    const next = Object.assign({}, files);
+    keys.forEach((k) => { next[k] = ''; });
+    onUpdate({ files: next });
+    toast('Cleared the ' + keys[0].toUpperCase() + ' pane', 'info');
+  };
+
+  const wipeTemplate = () => {
+    const next = isSplit
+      ? { html: TPL_SPLIT_HTML.replace(/<link rel="stylesheet" href="style\.css">\n?/, '').replace(/<script src="app\.js"><\/script>\n?/, ''), css: '', js: '' }
+      : { html: BLANK_SINGLE, css: '', js: '' };
+    onUpdate({ files: next });
+    setConfirm(null);
+    setPreviewKey((k) => k + 1);
+    toast('Template removed — blank canvas ready', 'success');
+  };
+
+  const spinUpTunnel = () => {
+    if (typeof LZString === 'undefined') {
+      toast('lz-string failed to load — the tunnel encoder is unavailable', 'error');
+      return;
+    }
+    const exp = Date.now() + TUNNEL_TTL_MS;
+    const id = uid('tun');
+    const url = baseUrl() + 'preview.html?c=' + payload + '&exp=' + exp + '&id=' + id + '&v=' + APP_VERSION;
+    const warning = payload.length > TUNNEL_WARN_CHARS
+      ? 'Long payload — some chat clients truncate URLs above ~8,000 chars.'
+      : null;
+    const record = { id, url, exp, createdAt: Date.now(), payloadLength: payload.length, warning };
+    setTunnel(record);
+    setShowTunnel(true);
+    setCopied(false);
+    onUpdate({ lastTunnel: { id, exp, createdAt: Date.now() } });
+    toast('Tunnel server live for 15 minutes', 'success');
+  };
+
+  const copyLink = () => {
+    if (!tunnel) return;
+    const done = () => { setCopied(true); toast('Live link copied to the clipboard', 'success'); setTimeout(() => setCopied(false), 2600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tunnel.url).then(done).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = tunnel.url;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select the link and copy manually', 'error'); }
+        document.body.removeChild(ta);
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = tunnel.url;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select the link and copy manually', 'error'); }
+      document.body.removeChild(ta);
+    }
+  };
+
+  const revokeTunnel = () => {
+    if (!tunnel) return;
+    const revoked = Store.get(LS_REVOKED, []);
+    const list = Array.isArray(revoked) ? revoked.slice() : [];
+    if (list.indexOf(tunnel.id) === -1) list.push(tunnel.id);
+    Store.set(LS_REVOKED, list);
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'BT_REVOKE', id: tunnel.id });
+      }
+    } catch (e) { /* worker not controlling yet — the localStorage deny-list still applies */ }
+    onUpdate({ lastTunnel: null });
+    setTunnel(null);
+    setShowTunnel(false);
+    toast('Tunnel revoked — that link now returns a 410', 'warn');
+  };
+
+  const openTab = () => {
+    try {
+      const blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const w = window.open(url, '_blank', 'noopener');
+      if (!w) { toast('The browser blocked the pop-up — allow pop-ups for this site', 'warn'); return; }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) { toast('Could not open the preview tab', 'error'); }
+  };
+
+  const popOut = () => {
+    const w = window.open('', '_blank');
+    if (!w) { toast('The browser blocked the pop-up — allow pop-ups for this site', 'warn'); return; }
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
+  };
+
+  const size = Object.keys(files).reduce((acc, k) => acc + (files[k] || '').length, 0);
+  const swTone = swState === 'active' ? 'emerald' : swState === 'failed' ? 'rose' : swState === 'unsupported' ? 'amber' : 'slate';
+  const swLabel = { active: 'Tunnel worker active', installing: 'Worker installing…', failed: 'Worker registration failed', unsupported: 'No service worker support', checking: 'Checking worker…' }[swState];
+
+  const editorStack = isSplit
+    ? [
+        { key: 'html', label: 'index.html', lang: 'html', accent: 'cyan' },
+        { key: 'css', label: 'style.css', lang: 'css', accent: 'violet' },
+        { key: 'js', label: 'app.js', lang: 'js', accent: 'amber' }
+      ]
+    : [{ key: 'html', label: 'index.html', lang: 'html', accent: 'cyan' }];
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* ---------------- sticky workspace header ---------------- */}
+      <header className="sticky top-0 z-40 border-b border-slate-800/60 bg-slate-950/80 bt-glass">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-2 px-3 py-2.5 sm:px-4">
+          <Btn variant="ghost" size="sm" icon="ArrowLeft" onClick={onBack} title="Back to dashboard" />
+
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">
+              <Icon name={isSplit ? 'Layers' : 'FileCode2'} size={15} />
+            </div>
+            {renaming ? (
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={renameCommit}
+                onKeyDown={(e) => { if (e.key === 'Enter') renameCommit(); if (e.key === 'Escape') { setNameDraft(project.name); setRenaming(false); } }}
+                className="w-44 rounded-md border border-cyan-500/50 bg-slate-950 px-2 py-1 text-[13px] font-semibold text-slate-100 outline-none sm:w-60"
+              />
+            ) : (
+              <button type="button" onClick={() => { setNameDraft(project.name); setRenaming(true); }} title="Click to rename"
+                className="group flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 transition hover:bg-slate-800/60 bt-focus">
+                <span className="truncate text-[13.5px] font-semibold tracking-tight text-slate-100">{project.name}</span>
+                <Icon name="Pencil" size={11} className="shrink-0 text-slate-600 transition group-hover:text-cyan-400" />
+              </button>
+            )}
+            <Badge tone={isSplit ? 'violet' : 'cyan'} className="hidden md:inline-flex">{isSplit ? 'Multi-file' : 'Single HTML'}</Badge>
+          </div>
+
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <span className="hidden items-center gap-1.5 rounded-lg border border-slate-800/70 bg-slate-900/60 px-2.5 py-1.5 lg:inline-flex">
+              <Icon name={swState === 'active' ? 'ShieldCheck' : 'ShieldAlert'} size={12} className={swState === 'active' ? 'text-emerald-400' : 'text-amber-400'} />
+              <span className="text-[10.5px] font-semibold text-slate-400">{swLabel}</span>
+            </span>
+            <Btn variant="ghost" size="sm" icon="Settings2" onClick={() => { setNameDraft(project.name); setRenaming(true); }} title="Rename project" />
+            <Btn variant="outline" size="sm" icon="Eraser" onClick={() => setConfirm('clear')} title="Clear the current editor pane">Clear</Btn>
+            <Btn variant="outline" size="sm" icon="FileX2" onClick={() => setConfirm('template')} title="Remove the starter template">Remove Template</Btn>
+            <Btn variant="outline" size="sm" icon="Download" onClick={() => downloadProject(project)} title="Download project">
+              <span className="hidden sm:inline">{isSplit ? 'Download .zip' : 'Download .html'}</span>
+            </Btn>
+            <Btn variant="danger" size="sm" icon="Trash2" onClick={() => setConfirm('delete')} title="Delete project" />
+          </div>
+        </div>
+
+        {/* ---------------- utility strip ---------------- */}
+        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-2 border-t border-slate-800/50 px-3 py-2 sm:px-4">
+          <div className="flex items-center gap-1 rounded-lg border border-slate-800/70 bg-slate-900/50 p-0.5">
+            {[
+              { key: 'split', label: 'Split', icon: 'Columns2' },
+              { key: 'columns', label: 'Columns', icon: 'LayoutGrid' },
+              { key: 'preview', label: 'Preview', icon: 'Eye' }
+            ].filter((m) => isSplit || m.key !== 'columns').map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setMode(m.key)}
+                className={['inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-semibold transition bt-focus',
+                  mode === m.key ? 'bg-slate-800 text-cyan-300 shadow-sm' : 'text-slate-400 hover:text-slate-200'].join(' ')}
+              >
+                <Icon name={m.icon} size={12} />{m.label}
+              </button>
+            ))}
+          </div>
+
+          {isSplit && mode !== 'preview' ? (
+            <div className="flex items-center gap-1 rounded-lg border border-slate-800/70 bg-slate-900/50 p-0.5">
+              {editorStack.map((p) => (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => setPane(p.key)}
+                  className={['rounded-md px-2.5 py-1 font-mono text-[11px] font-semibold transition bt-focus',
+                    pane === p.key ? 'bg-slate-800 text-slate-100' : 'text-slate-500 hover:text-slate-300'].join(' ')}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-[10.5px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><Icon name="HardDrive" size={11} />{bytes(size)}</span>
+            <span className="inline-flex items-center gap-1"><Icon name="Link2" size={11} />payload {payload.length.toLocaleString()} ch</span>
+            <span className="inline-flex items-center gap-1"><Icon name="Save" size={11} />autosaved {relTime(project.updatedAt)}</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ---------------- canvas ---------------- */}
+      <main className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col gap-3 px-3 py-3 sm:px-4">
+        {mode === 'preview' ? (
+          <div className="flex min-h-[70vh] flex-1 flex-col">
+            <PreviewPane doc={doc} key={previewKey} onRefresh={() => setPreviewKey((k) => k + 1)} onOpenTab={openTab} onPopOut={popOut} />
+          </div>
+        ) : mode === 'columns' && isSplit ? (
+          <div className="grid min-h-[70vh] flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
+            {editorStack.map((p) => (
+              <CodePane
+                key={p.key}
+                lang={p.lang}
+                label={p.label}
+                accent={p.accent}
+                value={files[p.key] || ''}
+                onChange={(v) => setFile(p.key, v)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex min-h-[70vh] flex-1 flex-col gap-3 xl:flex-row">
+            <div className="flex min-h-[52vh] flex-1 flex-col xl:min-h-0">
+              <CodePane
+                lang={editorStack.find((p) => p.key === pane)?.lang || 'html'}
+                label={editorStack.find((p) => p.key === pane)?.label || 'index.html'}
+                accent={editorStack.find((p) => p.key === pane)?.accent || 'cyan'}
+                value={files[pane] || ''}
+                onChange={(v) => setFile(pane, v)}
+              />
+            </div>
+            <div className="flex min-h-[52vh] flex-1 flex-col xl:min-h-0">
+              <PreviewPane doc={doc} key={previewKey} onRefresh={() => setPreviewKey((k) => k + 1)} onOpenTab={openTab} onPopOut={popOut} />
+            </div>
+          </div>
+        )}
+
+        {/* ---------------- tunnel launch deck ---------------- */}
+        <section className="relative overflow-hidden rounded-2xl border border-slate-800/60 bg-slate-900/70 bt-glass p-4 sm:p-5">
+          <div className="pointer-events-none absolute inset-0 opacity-70" style={{ backgroundImage: 'radial-gradient(600px 200px at 12% 0%, rgba(34,211,238,.12), transparent 70%), radial-gradient(500px 200px at 88% 100%, rgba(167,139,250,.10), transparent 70%)' }} />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <Icon name="Antenna" size={15} className="text-cyan-400" />
+                <h2 className="text-[13.5px] font-semibold tracking-tight text-slate-100">Deployment tunnel</h2>
+                <Badge tone="cyan">15-minute TTL</Badge>
+              </div>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-slate-400">
+                Packs the active project into an lz-string URL, hands it to <span className="font-mono text-slate-300">preview.html</span>,
+                and lets the service worker serve it as a top-level document — no iframe, no build step, no backend.
+              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-slate-500">
+                <span className="inline-flex items-center gap-1"><Icon name="Lock" size={10} />client-side only</span>
+                <span className="inline-flex items-center gap-1"><Icon name="Timer" size={10} />expires {new Date(Date.now() + TUNNEL_TTL_MS).toLocaleTimeString()}</span>
+                <span className="inline-flex items-center gap-1"><Icon name="Boxes" size={10} />{isSplit ? '3 files fused' : '1 file packed'}</span>
+              </div>
+            </div>
+
+            <div className="relative shrink-0">
+              <span className="pointer-events-none absolute inset-0 rounded-xl border border-cyan-400/50 animate-bt-ring" />
+              <button
+                type="button"
+                onClick={spinUpTunnel}
+                className="relative inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/50 bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-[13.5px] font-bold tracking-tight text-slate-950 shadow-2xl shadow-cyan-500/25 transition-all duration-200 hover:from-cyan-400 hover:to-violet-400 hover:shadow-cyan-400/40 active:scale-[.98] bt-focus lg:w-auto"
+              >
+                <Icon name="Rocket" size={17} />
+                🚀 Spin Up Tunnel Server
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* ---------------- status bar ---------------- */}
+      <footer className="sticky bottom-0 z-30 border-t border-slate-800/60 bg-slate-950/85 bt-glass">
+        <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 text-[10.5px] text-slate-500 sm:px-4">
+          <span className="inline-flex items-center gap-1"><Icon name="CircleDot" size={10} className="text-emerald-400" />{isSplit ? 'multi-file build' : 'single-file build'}</span>
+          <span className="inline-flex items-center gap-1"><Icon name="Braces" size={10} />{editorStack.find((p) => p.key === pane)?.label}</span>
+          <span className="inline-flex items-center gap-1"><Icon name="Sparkles" size={10} />React 18 · Tailwind · Lucide · lz-string</span>
+          <span className="ml-auto inline-flex items-center gap-1">
+            <Icon name={tunnel ? 'Radio' : 'RadioTower'} size={10} className={tunnel ? 'text-emerald-400' : 'text-slate-600'} />
+            {tunnel ? 'tunnel live · ' + clock(Math.max(0, tunnel.exp - Date.now())) : 'tunnel idle'}
+          </span>
+        </div>
+      </footer>
+
+      <TunnelOverlay
+        tunnel={showTunnel ? tunnel : null}
+        onClose={() => setShowTunnel(false)}
+        onRevoke={revokeTunnel}
+        onCopy={copyLink}
+        copied={copied}
+        baseUrl={baseUrl()}
+      />
+
+      <ConfirmDialog
+        open={confirm === 'clear'}
+        title="Clear the current pane?"
+        icon="Eraser"
+        message={'This empties the ' + (isSplit ? pane.toUpperCase() : 'HTML') + ' editor pane immediately. Everything else in the project is untouched.'}
+        confirmLabel="Clear pane"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => { clearPane(); setConfirm(null); }}
+      />
+      <ConfirmDialog
+        open={confirm === 'template'}
+        title="Remove the starter template?"
+        icon="FileX2"
+        message="All default boilerplate is wiped and every pane is reduced to a blank canvas. Your current code will be lost — download the project first if you want to keep it."
+        confirmLabel="Wipe to blank canvas"
+        onCancel={() => setConfirm(null)}
+        onConfirm={wipeTemplate}
+      />
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        title="Delete this project?"
+        icon="Trash2"
+        message={'“' + project.name + '” will be permanently removed from this browser, along with its tunnel history.'}
+        confirmLabel="Delete project"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => { setConfirm(null); onDelete(project.id); }}
+      />
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------------------------
+   Error boundary — catches render faults and offers a recovery path
+   -------------------------------------------------------------------------- */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null, info: null };
+  }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { this.setState({ info }); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    const msg = String((this.state.error && this.state.error.message) || this.state.error);
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-lg rounded-2xl border border-rose-500/30 bg-slate-900/85 bt-glass p-6">
+          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
+            <Icon name="AlertOctagon" size={20} />
+          </div>
+          <h1 className="text-base font-semibold text-slate-100">The workspace hit a rendering fault</h1>
+          <p className="mt-2 text-[12.5px] leading-relaxed text-slate-400">
+            Your projects are still safe in local storage — this is a UI-level failure, not data loss. Reload to rebuild the workspace.
+          </p>
+          <pre className="bt-scroll mt-4 max-h-40 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-[11px] leading-relaxed text-rose-200">{msg}</pre>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Btn variant="primary" size="md" icon="RefreshCw" onClick={() => window.location.reload()}>Reload the IDE</Btn>
+            <Btn variant="outline" size="md" icon="Download" onClick={() => {
+              try {
+                const dump = window.localStorage.getItem(LS_PROJECTS) || '[]';
+                triggerDownload(new Blob([dump], { type: 'application/json' }), 'browser-tunnel-backup.json');
+              } catch (e) { /* ignore */ }
+            }}>Export a backup</Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Root application
+   -------------------------------------------------------------------------- */
+function App() {
+  const [projects, setProjects] = useState([]);
+  const [view, setView] = useState('dashboard');
+  const [activeId, setActiveId] = useState(null);
+  const [newOpen, setNewOpen] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [toasts, setToasts] = useState([]);
+  const [storageOk, setStorageOk] = useState(true);
+  const hydrated = useRef(false);
+  const saveTimer = useRef(null);
+
+  /* ---- hydration ---- */
+  useEffect(() => {
+    const ok = Store.available();
+    setStorageOk(ok);
+    if (!ok) toast('Local storage is blocked — this session will not persist', 'error', 7000);
+    const raw = Store.get(LS_PROJECTS, []);
+    const list = Array.isArray(raw) ? raw.filter((p) => p && p.id && p.files) : [];
+    if (!Array.isArray(raw) && raw !== null) toast('Saved projects were unreadable and have been reset', 'warn');
+    setProjects(list);
+    hydrated.current = true;
+  }, []);
+
+  /* ---- toasts ---- */
+  useEffect(() => {
+    const sub = (t) => {
+      setToasts((cur) => cur.concat([t]));
+      setTimeout(() => setToasts((cur) => cur.filter((x) => x.key !== t.key)), t.duration || 3600);
+    };
+    toastBus.subs.add(sub);
+    return () => toastBus.subs.delete(sub);
+  }, []);
+
+  /* ---- debounced persistence ---- */
+  useEffect(() => {
+    if (!hydrated.current) return undefined;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const res = Store.set(LS_PROJECTS, projects);
+      if (!res.ok) {
+        setStorageOk(false);
+        toast(res.message, 'error', 6000);
+      }
+    }, 380);
+    return () => clearTimeout(saveTimer.current);
+  }, [projects]);
+
+  const active = useMemo(() => projects.find((p) => p.id === activeId) || null, [projects, activeId]);
+
+  const createProject = (name, type, imported) => {
+    const p = newProject(name, type, imported);
+    setProjects((cur) => [p].concat(cur));
+    setNewOpen(false);
+    setActiveId(p.id);
+    setView('workspace');
+    toast('Created “' + p.name + '”', 'success');
+  };
+
+  const updateProject = useCallback((patch) => {
+    setProjects((cur) => cur.map((p) => (p.id === activeId ? Object.assign({}, p, patch, { updatedAt: new Date().toISOString() }) : p)));
+  }, [activeId]);
+
+  const deleteProject = (id) => {
+    setProjects((cur) => cur.filter((p) => p.id !== id));
+    if (activeId === id) { setActiveId(null); setView('dashboard'); }
+    toast('Project deleted', 'info');
+  };
+
+  const openProject = (id) => {
+    setActiveId(id);
+    setView('workspace');
+  };
+
+  const submitRename = () => {
+    const next = renameDraft.trim();
+    if (!renameTarget) return;
+    if (!next) { toast('A project name cannot be empty', 'warn'); return; }
+    setProjects((cur) => cur.map((p) => (p.id === renameTarget.id ? Object.assign({}, p, { name: next, updatedAt: new Date().toISOString() }) : p)));
+    toast('Renamed to “' + next + '”', 'success');
+    setRenameTarget(null);
+  };
+
+  return (
+    <div className="relative min-h-screen bt-grid-bg">
+      {view === 'dashboard' || !active ? (
+        <Dashboard
+          projects={projects}
+          storageOk={storageOk}
+          onNew={() => setNewOpen(true)}
+          onOpen={openProject}
+          onRename={(p) => { setRenameTarget(p); setRenameDraft(p.name); }}
+          onDownload={downloadProject}
+          onDelete={(p) => deleteProject(p.id)}
+        />
+      ) : (
+        <Workspace
+          key={active.id}
+          project={active}
+          onUpdate={updateProject}
+          onBack={() => { setView('dashboard'); }}
+          onDelete={deleteProject}
+        />
+      )}
+
+      <NewProjectModal open={newOpen} onClose={() => setNewOpen(false)} onCreate={createProject} />
+
+      <Modal
+        open={!!renameTarget}
+        onClose={() => setRenameTarget(null)}
+        title="Rename project"
+        subtitle="The name is used for downloads and workspace headers."
+        icon="PencilLine"
+        tone="violet"
+        width="max-w-md"
+        footer={
+          <>
+            <Btn variant="outline" size="md" onClick={() => setRenameTarget(null)}>Cancel</Btn>
+            <Btn variant="primary" size="md" icon="Check" onClick={submitRename}>Save name</Btn>
+          </>
+        }
+      >
+        <input
+          autoFocus
+          value={renameDraft}
+          onChange={(e) => setRenameDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitRename(); }}
+          className={inputCls}
+          placeholder="Project name"
+        />
+      </Modal>
+
+      <Toasts items={toasts} />
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------------------------
+   Mount + boot watchdog
+   -------------------------------------------------------------------------- */
+(function boot() {
+  const rootEl = document.getElementById('root');
+  const bootEl = document.getElementById('bt-boot');
+
+  const assets = window.__BT_ASSETS__ || {};
+  const missing = Object.keys(assets).filter((k) => !assets[k]);
+
+  if (missing.length) {
+    const msgEl = bootEl && bootEl.querySelector('[data-boot-msg]');
+    if (msgEl) {
+      msgEl.innerHTML = 'Some CDN assets failed to load: <code>' + missing.join(', ') +
+        '</code>. Reload the page, or check that your network / content blocker allows unpkg.com, cdnjs.cloudflare.com and cdn.tailwindcss.com.';
+    }
+  }
+
+  if (!window.React || !window.ReactDOM) {
+    const msgEl = bootEl && bootEl.querySelector('[data-boot-msg]');
+    if (msgEl) msgEl.innerHTML = 'React could not be loaded from its CDN. The IDE cannot start without it — check the network connection and reload.';
+    return;
+  }
+
+  try {
+    const root = ReactDOM.createRoot(rootEl);
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
+    requestAnimationFrame(() => {
+      if (bootEl) {
+        bootEl.style.transition = 'opacity .3s ease';
+        bootEl.style.opacity = '0';
+        setTimeout(() => bootEl.remove(), 340);
+      }
+    });
+  } catch (err) {
+    const msgEl = bootEl && bootEl.querySelector('[data-boot-msg]');
+    if (msgEl) msgEl.textContent = 'Boot failed: ' + (err && err.message ? err.message : String(err));
+  }
+
+  /* Watchdog: if nothing mounted, explain why instead of hanging on the spinner. */
+  setTimeout(() => {
+    if (!rootEl.childElementCount) {
+      const msgEl = bootEl && bootEl.querySelector('[data-boot-msg]');
+      if (msgEl) {
+        msgEl.innerHTML = 'The workspace did not mount. Assets detected — ' +
+          Object.keys(assets).map((k) => k + ':' + (assets[k] ? 'ok' : 'missing')).join(' · ') +
+          '. Open the browser console for the underlying error.';
+      }
+    }
+  }, 9000);
+})();
 </script>
 </body>
 </html>
