@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Tunnel — Preview</title>
+<style>
+  html, body { margin:0; height:100%; background:#020617; color:#e2e8f0;
+               font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  #boot {
+    position:fixed; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:18px; padding:32px; text-align:center;
+  }
+  .logo {
+    width:54px; height:54px; border-radius:14px;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    box-shadow: 0 0 30px rgba(56,189,248,.35);
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px; color:white; font-weight:700;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); box-shadow: 0 0 30px rgba(56,189,248,.35); }
+    50%     { transform: scale(1.08); box-shadow: 0 0 50px rgba(99,102,241,.55); }
+  }
+  h1 { margin:0; font-size:15px; letter-spacing:.18em; color:#67e8f9; text-transform:uppercase; }
+  p  { margin:0; color:#64748b; font-size:13px; max-width:420px; line-height:1.55; }
+  .err {
+    background:#1e293b; border:1px solid #334155; border-radius:10px;
+    padding:14px 18px; color:#fca5a5; font-size:13px; max-width:520px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space:pre-wrap; text-align:left;
+  }
+  .btn {
+    margin-top:6px; padding:9px 18px; border-radius:10px; border:1px solid #1e293b;
+    background:#0f172a; color:#e2e8f0; font-size:13px; cursor:pointer; transition:.15s;
+  }
+  .btn:hover { border-color:#0ea5e9; color:#7dd3fc; }
+</style>
+</head>
+<body>
+<div id="boot">
+  <div class="logo">B</div>
+  <h1>Browser Tunnel</h1>
+  <p id="status">Spinning up tunnel session…</p>
+  <div id="error" class="err" style="display:none;"></div>
+  <button id="retry" class="btn" style="display:none;">Retry</button>
+</div>
+
+<!-- Official LZ-string library -->
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script>
+/* --------------------------------------------------------------------------
+   preview.html — fallback renderer.
+   The Service Worker (sw.js) usually intercepts this URL and returns the
+   unpacked project as a top-level document. This page only runs if the SW
+   is not yet active (e.g. first visit before registration completes).
+   -------------------------------------------------------------------------- */
+(function () {
+  const statusEl = document.getElementById("status");
+  const errorEl  = document.getElementById("error");
+  const retryEl  = document.getElementById("retry");
+
+  function fail(msg, hint) {
+    statusEl.style.display = "none";
+    errorEl.style.display = "block";
+    errorEl.textContent = msg + (hint ? "\n\n" + hint : "");
+    retryEl.style.display = "inline-block";
+    retryEl.onclick = () => location.reload();
+  }
+
+  function composeHTML(p) {
+    if (!p) throw new Error("Empty project payload");
+    if (p.type === "single") return p.html || "<!doctype html><title>Empty</title>";
+    const css = p.css || "";
+    const js  = p.js  || "";
+    const html = p.html || "";
+    return `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Preview</title><style>${css}</style></head><body>${html}<script>try{${js}}catch(e){var b=document.createElement('div');b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fee2e2;padding:12px;font:13px monospace;z-index:999999';b.textContent='Runtime error: '+(e&&e.stack?e.stack:String(e));document.body.appendChild(b);}<\/script></body></html>`;
+  }
+
+  function render() {
+    const params = new URLSearchParams(location.search);
+    const payload = params.get("p");
+    const exp = params.get("exp");
+
+    if (!payload) {
+      fail("No tunnel payload found in URL.", "Open this page only from the Browser Tunnel IDE 'Spin Up' action.");
+      return;
+    }
+    if (exp) {
+      const expNum = Number(exp);
+      if (!Number.isFinite(expNum)) { fail("Invalid expiration timestamp."); return; }
+      if (Date.now() > expNum) {
+        fail("Tunnel has expired.", "Tunnels live for 15 minutes. Re-spin from the IDE.");
+        return;
+      }
+    }
+    try {
+      if (!window.LZString || typeof window.LZString.decompressFromBase64 !== 'function') {
+        fail("LZString library failed to load.", "Check your network connection and retry.");
+        return;
+      }
+      const json = window.LZString.decompressFromBase64(payload);
+      if (!json) {
+        fail("Empty / corrupted payload.");
+        return;
+      }
+      const project = JSON.parse(json);
+      const finalDoc = composeHTML(project);
+      // Replace entire top-level document so PeerJS/WebRTC/camera see a real top-level origin.
+      document.open();
+      document.write(finalDoc);
+      document.close();
+    } catch (e) {
+      fail("Failed to render tunnel payload: " + (e && e.message ? e.message : String(e)),
+           "The compressed parameter may be corrupted or truncated.");
+    }
+  }
+
+  // Try to register the SW first; render regardless after a short timeout
+  // (the SW will intercept and we never reach render() in that case).
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {}).finally(() => {
+      setTimeout(render, 300);
+    });
+  } else {
+    fail("Service Workers not supported in this browser.", "Try Chrome / Edge / Firefox latest.");
+  }
+})();
+</script>
+</body>
+</html>

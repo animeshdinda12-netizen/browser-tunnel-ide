@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Tunnel IDE — Backendless Web Dev Studio</title>
+<meta name="description" content="Premium backendless web development IDE with Browser Tunnel deployment. Build, preview, and ship single-file or split HTML/CSS/JS projects — fully client-side.">
+
+<!-- React 18 production CDNs -->
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+
+<!-- Babel standalone (JSX transform in-browser) -->
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+
+<!-- Tailwind CSS via CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Lucide icons (UMD) — we re-run createIcons() after each React render -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+<!-- lz-string for URL compression -->
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+
+<!-- JSZip for multi-file project downloads -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- Tailwind custom theme config -->
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50:  '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+            400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+            800: '#1e40af', 900: '#1e3a8a'
+          }
+        },
+        fontFamily: {
+          mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        },
+        animation: {
+          'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+          'slide-up':   'slideUp .25s ease-out',
+          'fade-in':    'fadeIn .18s ease-out',
+        },
+        keyframes: {
+          pulseGlow: {
+            '0%,100%': { boxShadow: '0 0 0 0 rgba(56,189,248,.55)' },
+            '50%':     { boxShadow: '0 0 0 12px rgba(56,189,248,0)' }
+          },
+          slideUp: {
+            '0%': { transform: 'translateY(8px)', opacity: 0 },
+            '100%': { transform: 'translateY(0)', opacity: 1 }
+          },
+          fadeIn: {
+            '0%': { opacity: 0 },
+            '100%': { opacity: 1 }
+          }
+        }
+      }
+    }
+  };
+</script>
+
+<style>
+  html, body { background:#020617; color:#e2e8f0; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  * { -webkit-tap-highlight-color: transparent; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:#020617; }
+  ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:6px; border:2px solid #020617; }
+  ::-webkit-scrollbar-thumb:hover { background:#334155; }
+  textarea, input { outline:none; }
+  textarea { tab-size: 2; }
+  .glass { background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .code-font { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .no-scrollbar::-webkit-scrollbar { display:none; }
+  .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+</style>
+</head>
+<body class="bg-slate-950">
+<div id="root"></div>
+
+<!-- Main application script (Babel JSX) -->
+<script type="text/babel" data-presets="env,react">
+/* ==========================================================================
+   Browser Tunnel IDE — main application
+   ========================================================================== */
+const { useState: useStateReact, useEffect, useRef, useMemo, useCallback } = React;
+const useState = useStateReact;
+
+/* ----- lucide helper -------------------------------------------------- */
+function useIcons() {
+  useEffect(() => {
+    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+  });
+}
+function Icon({ name, size = 18, className = "", strokeWidth = 2 }) {
+  useIcons();
+  return <i data-lucide={name} style={{ width: size, height: size }} className={className} data-stroke-width={strokeWidth}></i>;
+}
+
+/* ----- storage helpers ------------------------------------------------ */
+const LS_KEY_PROJECTS = "bt-projects";
+const LS_KEY_ACTIVE    = "bt-active-id";
+const LS_KEY_LAYOUT    = "bt-layout";     // 'split' | 'unified'
+const LS_KEY_SW_REG     = "bt-sw-registered";
+
+function loadProjects() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_PROJECTS);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(p => p && p.id && p.name && p.type);
+  } catch (e) {
+    console.warn("Failed to load projects:", e);
+    return [];
+  }
+}
+function saveProjects(projects) {
+  try {
+    localStorage.setItem(LS_KEY_PROJECTS, JSON.stringify(projects));
+    return true;
+  } catch (e) {
+    if (e && e.name === "QuotaExceededError") {
+      alert("Local Storage quota exceeded. Try removing large projects or downloading and deleting them.");
+      return false;
+    }
+    console.warn("Failed to save projects:", e);
+    return false;
+  }
+}
+
+/* ----- default templates -------------------------------------------- */
+const TEMPLATES = {
+  single: `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My App</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center">
+  <div class="text-center space-y-3">
+    <h1 class="text-4xl font-bold text-cyan-300">Browser Tunnel</h1>
+    <p class="text-slate-400">Edit me, then hit 🚀 Spin Up Tunnel.</p>
+    <button onclick="alert('Hello from Browser Tunnel IDE!')"
+            class="px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-semibold">
+      Click me
+    </button>
+  </div>
+<\/body>
+<\/html>`,
+  multi: {
+    html: `<div class="card">
+  <h1>Hello Tunnel</h1>
+  <p>Edit HTML, CSS, and JS in their own tabs.</p>
+  <button id="btn">Increment <span id="count">0</span></button>
+</div>`,
+    css: `* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  display: flex; align-items: center; justify-content: center;
+  font-family: system-ui, sans-serif; color: white;
+}
+.card { background: rgba(0,0,0,.25); padding: 32px 40px; border-radius: 16px; text-align: center; backdrop-filter: blur(8px); }
+h1 { margin: 0 0 8px; }
+button { margin-top: 16px; padding: 10px 18px; border: 0; border-radius: 8px; font-weight: 600; cursor: pointer; }
+button:hover { background: #fde047; color: #0f172a; }`,
+    js: `const btn = document.getElementById('btn');
+const countEl = document.getElementById('count');
+let n = 0;
+btn.addEventListener('click', () => {
+  n += 1;
+  countEl.textContent = n;
+});`
+  }
+};
+
+/* ----- id generator --------------------------------------------------- */
+function genId() {
+  return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+/* ----- format date ---------------------------------------------------- */
+function formatDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+    + " · " + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ----- format countdown ---------------------------------------------- */
+function formatCountdown(ms) {
+  if (ms < 0) ms = 0;
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+/* ----- copy to clipboard --------------------------------------------- */
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { /* fallthrough */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* ----- Error Boundary ------------------------------------------------ */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, message: "" }; }
+  static getDerivedStateFromError(err) {
+    return { hasError: true, message: (err && err.message) ? err.message : String(err) };
+  }
+  componentDidCatch(err, info) {
+    console.error("Boundary caught:", err, info);
+  }
+  reset = () => this.setState({ hasError: false, message: "" });
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-8 bg-slate-950">
+          <div className="glass border border-slate-800 rounded-2xl p-8 max-w-md text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-red-500/20 flex items-center justify-center">
+              <Icon name="alert-triangle" size={22} className="text-red-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-red-300 mb-2">App crashed</h2>
+            <p className="text-sm text-slate-400 mb-5 break-words">{this.state.message}</p>
+            <button onClick={this.reset}
+              className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-200 border border-slate-700">
+              Reload view
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ----- Toast --------------------------------------------------------- */
+function Toast({ toast, onClose }) {
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(onClose, 2400);
+    return () => clearTimeout(t);
+  }, [toast, onClose]);
+  if (!toast) return null;
+  const palette = {
+    success: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300",
+    error:   "bg-red-500/15    border-red-500/40    text-red-300",
+    info:    "bg-sky-500/15    border-sky-500/40    text-sky-300"
+  };
+  const icons = { success: "check-circle", error: "alert-circle", info: "info" };
+  return (
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 animate-slide-up">
+      <div className={`glass border rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm ${palette[toast.kind] || palette.info}`}>
+        <Icon name={icons[toast.kind] || icons.info} size={16} />
+        <span>{toast.msg}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ----- Top nav bar --------------------------------------------------- */
+function TopNav({ onBackToDashboard, projectName, view }) {
+  return (
+    <header className="glass sticky top-0 z-30 border-b border-slate-800/60 px-4 py-2.5 flex items-center gap-3">
+      <button onClick={onBackToDashboard}
+        className="flex items-center gap-2 group">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-sky-500/20">
+          B
+        </div>
+        <div className="hidden sm:block">
+          <div className="text-[11px] uppercase tracking-[.22em] text-slate-500 leading-none">Browser</div>
+          <div className="text-[13px] font-semibold text-slate-200 leading-tight">Tunnel IDE</div>
+        </div>
+      </button>
+      {view === 'workspace' && projectName && (
+        <div className="ml-2 hidden md:flex items-center gap-2 text-slate-500 text-sm">
+          <Icon name="chevron-right" size={14} />
+          <span className="text-slate-300">{projectName}</span>
+        </div>
+      )}
+      <div className="flex-1" />
+      <a href="https://github.com" target="_blank" rel="noreferrer"
+         className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800/60 transition">
+        <Icon name="github" size={16} /> Source
+      </a>
+      <div className="flex items-center gap-1.5 text-xs text-slate-400 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Local-only</span>
+      </div>
+    </header>
+  );
+}
+
+/* ----- Dashboard: project cards ------------------------------------- */
+function ProjectCard({ project, onOpen, onRename, onDelete, onDownload, index }) {
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menu]);
+
+  return (
+    <div className="group relative glass border border-slate-800/70 rounded-2xl p-5 hover:border-sky-500/40 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/5 animate-fade-in"
+      style={{ animationDelay: (index * 0.04) + 's' }}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/60 flex items-center justify-center group-hover:from-sky-500/20 group-hover:to-indigo-500/20 transition">
+          <Icon name={project.type === 'single' ? "file-code-2" : "layers-3"} size={20} className="text-slate-400 group-hover:text-sky-300 transition" />
+        </div>
+        <div className="relative">
+          <button onClick={(e) => { e.stopPropagation(); setMenu(v => !v); }}
+            className="p-1.5 rounded-lg hover:bg-slate-800/80 text-slate-500 hover:text-slate-200 transition">
+            <Icon name="more-vertical" size={16} />
+          </button>
+          {menu && (
+            <div className="absolute right-0 top-full mt-1 w-44 glass border border-slate-800 rounded-xl py-1.5 z-20 animate-slide-up">
+              <button onClick={() => { setMenu(false); onOpen(); }}
+                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
+                <Icon name="external-link" size={14} /> Open
+              </button>
+              <button onClick={() => { setMenu(false); onRename(); }}
+                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
+                <Icon name="pencil" size={14} /> Rename
+              </button>
+              <button onClick={() => { setMenu(false); onDownload(); }}
+                className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/80 flex items-center gap-2">
+                <Icon name="download" size={14} /> Download
+              </button>
+              <div className="h-px bg-slate-800 my-1.5" />
+              <button onClick={() => { setMenu(false); onDelete(); }}
+                className="w-full px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10 flex items-center gap-2">
+                <Icon name="trash-2" size={14} /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      <button onClick={onOpen} className="block w-full text-left">
+        <h3 className="text-slate-100 font-semibold truncate mb-1">{project.name}</h3>
+        <div className="flex items-center gap-2 mb-3">
+          {project.type === 'single' ? (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20">
+              Single HTML
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              Multi-file Split
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+          <Icon name="clock" size={12} />
+          {formatDate(project.updatedAt || project.createdAt)}
+        </p>
+      </button>
+    </div>
+  );
+}
+
+/* ----- New Project Modal ------------------------------------------- */
+function NewProjectModal({ onClose, onCreate }) {
+  const [step, setStep] = useState(1);
+  const [type, setType] = useState(null);     // 'single' | 'multi'
+  const [name, setName] = useState("");
+  const [imported, setImported] = useState(null); // {html, css?, js?}
+  const fileRef = useRef(null);
+  useIcons();
+
+  function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      // If file is .html, treat as single. If .css/.js, fill appropriate slot.
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith('.html') || lower.endsWith('.htm')) {
+        setType('single');
+        setImported({ html: text });
+      } else if (lower.endsWith('.css')) {
+        setType('multi');
+        setImported({ css: text });
+      } else if (lower.endsWith('.js') || lower.endsWith('.mjs')) {
+        setType('multi');
+        setImported({ js: text });
+      } else {
+        setType('single');
+        setImported({ html: text });
+      }
+      if (!name) setName(file.name.replace(/\.[^.]+$/, ''));
+    };
+    reader.readAsText(file);
+  }
+
+  function create() {
+    const finalName = name.trim() || (type === 'single' ? "Untitled HTML" : "Untitled Project");
+    let html, css, js;
+    if (type === 'single') {
+      html = imported?.html || TEMPLATES.single;
+    } else {
+      html = imported?.html || TEMPLATES.multi.html;
+      css = imported?.css || TEMPLATES.multi.css;
+      js  = imported?.js  || TEMPLATES.multi.js;
+    }
+    onCreate({ name: finalName, type, html, css, js });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="glass border border-slate-800 rounded-2xl w-full max-w-lg p-6 animate-slide-up shadow-2xl shadow-sky-500/5">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
+            <Icon name="plus-circle" size={20} className="text-sky-400" />
+            New Project
+          </h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200">
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 mb-6">
+          <div className={`flex items-center gap-2 text-xs ${step >= 1 ? 'text-sky-300' : 'text-slate-500'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold border ${step >= 1 ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700'}`}>1</div>
+            <span>Structure</span>
+          </div>
+          <div className="flex-1 h-px bg-slate-800" />
+          <div className={`flex items-center gap-2 text-xs ${step >= 2 ? 'text-sky-300' : 'text-slate-500'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-semibold border ${step >= 2 ? 'border-sky-500 bg-sky-500/10' : 'border-slate-700'}`}>2</div>
+            <span>Metadata</span>
+          </div>
+        </div>
+
+        {step === 1 && (
+          <div className="space-y-3">
+            <button onClick={() => { setType('single'); setStep(2); }}
+              className={`w-full text-left p-4 rounded-xl border transition group ${type === 'single' ? 'border-sky-500 bg-sky-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}`}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Icon name="file-code-2" size={18} className="text-sky-300" />
+                </div>
+                <div>
+                  <div className="font-medium text-slate-100">Single Unified HTML File</div>
+                  <div className="text-xs text-slate-500">All CSS + JS inline in one .html document</div>
+                </div>
+              </div>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20">Badge A</span>
+            </button>
+            <button onClick={() => { setType('multi'); setStep(2); }}
+              className={`w-full text-left p-4 rounded-xl border transition group ${type === 'multi' ? 'border-indigo-500 bg-indigo-500/5' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'}`}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <Icon name="layers-3" size={18} className="text-indigo-300" />
+                </div>
+                <div>
+                  <div className="font-medium text-slate-100">Split Component View</div>
+                  <div className="text-xs text-slate-500">HTML, CSS, JS in separate editable panes</div>
+                </div>
+              </div>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Badge B</span>
+            </button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">Project name</label>
+              <input autoFocus value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') create(); }}
+                placeholder="My awesome app"
+                className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:border-sky-500/60 transition" />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-slate-500 mb-2">Import code (optional)</label>
+              <input ref={fileRef} type="file" accept=".html,.htm,.css,.js,.mjs"
+                onChange={(e) => { const f = e.target.files[0]; if (f) handleFile(f); }}
+                className="hidden" />
+              <button onClick={() => fileRef.current?.click()}
+                className="w-full p-4 rounded-xl border border-dashed border-slate-700 hover:border-sky-500/60 hover:bg-slate-800/40 transition flex flex-col items-center gap-1.5">
+                <Icon name="upload-cloud" size={20} className="text-slate-500" />
+                <span className="text-sm text-slate-300">{imported ? "Replace file" : "Choose a .html / .css / .js file"}</span>
+                {imported && (
+                  <span className="text-[11px] text-emerald-300 flex items-center gap-1 mt-1">
+                    <Icon name="check-circle" size={12} /> File imported
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <button onClick={() => setStep(1)}
+                className="px-3 py-2 text-sm text-slate-400 hover:text-slate-200 flex items-center gap-1">
+                <Icon name="arrow-left" size={14} /> Back
+              </button>
+              <button onClick={create}
+                className="px-4 py-2 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center gap-2 shadow-lg shadow-sky-500/20 transition">
+                <Icon name="rocket" size={14} /> Create project
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ----- Editor pane (textarea + line numbers + tab support) --------- */
+function EditorPane({ value, onChange, lang, placeholder }) {
+  const taRef = useRef(null);
+  const gutterRef = useRef(null);
+  const [lineCount, setLineCount] = useState(1);
+
+  useEffect(() => {
+    const lines = (value || "").split("\n").length;
+    setLineCount(lines);
+  }, [value]);
+
+  function syncScroll() {
+    if (gutterRef.current && taRef.current) {
+      gutterRef.current.scrollTop = taRef.current.scrollTop;
+    }
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const ta = e.currentTarget;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const insert = "  ";
+      const next = value.slice(0, start) + insert + value.slice(end);
+      onChange(next);
+      requestAnimationFrame(() => {
+        ta.selectionStart = ta.selectionEnd = start + insert.length;
+      });
+    }
+  }
+
+  const lines = [];
+  for (let i = 1; i <= lineCount; i++) lines.push(i);
+
+  const langColor = {
+    html: 'text-orange-400', css: 'text-sky-400', js: 'text-yellow-400'
+  }[lang] || 'text-slate-400';
+
+  return (
+    <div className="relative flex h-full overflow-hidden bg-slate-950">
+      <div ref={gutterRef}
+        className="no-scrollbar overflow-hidden text-right py-3 px-2 select-none text-xs code-font text-slate-600 bg-slate-950 border-r border-slate-800/60"
+        style={{ minWidth: 44 }}>
+        {lines.map((n) => <div key={n} style={{ height: '1.55em', lineHeight: '1.55em' }}>{n}</div>)}
+      </div>
+      <textarea
+        ref={taRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKey}
+        onScroll={syncScroll}
+        spellCheck={false}
+        placeholder={placeholder || "Type code here..."}
+        className="flex-1 py-3 px-3 bg-slate-950 text-slate-100 code-font text-sm leading-[1.55] resize-none border-0 focus:ring-0"
+        style={{ tabSize: 2, whiteSpace: 'pre', overflowWrap: 'normal' }}
+      />
+      <span className="absolute top-2 right-3 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">
+        <span className={langColor}>{lang}</span>
+      </span>
+    </div>
+  );
+}
+
+/* ----- Tunnel overlay ---------------------------------------------- */
+function TunnelOverlay({ link, expiresAt, onRevoke }) {
+  const [now, setNow] = useState(Date.now());
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const remaining = expiresAt - now;
+
+  async function handleCopy() {
+    const ok = await copyText(link);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  function openLive() {
+    window.open(link, '_blank', 'noopener');
+  }
+
+  const expired = remaining <= 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in">
+      <div className="glass border border-slate-800 rounded-2xl w-full max-w-md p-6 text-center animate-slide-up shadow-2xl">
+        <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3 ${expired ? 'bg-slate-800' : 'bg-gradient-to-br from-sky-500 to-indigo-500 shadow-lg shadow-sky-500/30 animate-pulse-glow'}`}>
+          <Icon name={expired ? "moon-star" : "rocket"} size={28} className="text-white" />
+        </div>
+        <h2 className="text-lg font-semibold text-slate-100 mb-1">
+          {expired ? "Tunnel expired" : "Tunnel is live"}
+        </h2>
+        <p className="text-sm text-slate-500 mb-4">
+          {expired ? "Re-spin to keep your session alive." : "Open the link in any browser — runs as a top-level document."}
+        </p>
+        {!expired && (
+          <div className="mb-4">
+            <div className="text-[11px] uppercase tracking-wider text-slate-500 mb-1">Tunnel active for</div>
+            <div className="text-3xl font-mono font-semibold text-emerald-300 tabular-nums">
+              {formatCountdown(remaining)}
+            </div>
+            <div className="mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all"
+                style={{ width: (Math.max(0, remaining) / 900000) * 100 + '%' }} />
+            </div>
+          </div>
+        )}
+        <div className="rounded-lg bg-slate-950 border border-slate-800 p-2 mb-3 flex items-center gap-2">
+          <input readOnly value={link} className="flex-1 bg-transparent text-xs text-slate-300 code-font truncate" />
+          <button onClick={handleCopy}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition flex items-center gap-1 ${copied ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300 hover:bg-sky-500/30'}`}>
+            <Icon name={copied ? "check" : "clipboard-copy"} size={13} />
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={openLive} disabled={expired}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition">
+            <Icon name="external-link" size={15} /> Open live
+          </button>
+          <button onClick={onRevoke}
+            className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/40 text-sm text-slate-300 hover:text-red-300 flex items-center justify-center gap-2 transition">
+            <Icon name="power" size={15} /> Revoke
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-600 mt-4">
+          Service Worker intercepts the preview URL and returns your packed code as a top-level HTML document — no iframes.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ----- Workspace (IDE) --------------------------------------------- */
+function Workspace({ project, onUpdate, onBack, onToast, onDownload }) {
+  const [activeTab, setActiveTab] = useState(project.type === 'single' ? 'html' : 'html');
+  const [layout, setLayout] = useState(() => localStorage.getItem(LS_KEY_LAYOUT) || (project.type === 'single' ? 'unified' : 'split'));
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameVal, setRenameVal] = useState(project.name);
+  const [tunnel, setTunnel] = useState(null); // { link, expiresAt }
+  const [previewKey, setPreviewKey] = useState(0);
+  const [previewSrc, setPreviewSrc] = useState("");
+  const renameRef = useRef(null);
+  useIcons();
+
+  // Persist layout choice
+  useEffect(() => { localStorage.setItem(LS_KEY_LAYOUT, layout); }, [layout]);
+
+  // Update preview iframe whenever code changes (debounced).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPreviewSrc(buildPreviewDoc(project));
+    }, 280);
+    return () => clearTimeout(t);
+  }, [project.html, project.css, project.js, project.type]);
+
+  useEffect(() => {
+    if (renameOpen) {
+      setRenameVal(project.name);
+      setTimeout(() => renameRef.current?.select(), 30);
+    }
+  }, [renameOpen]);
+
+  function patch(field, val) {
+    onUpdate({ ...project, [field]: val, updatedAt: Date.now() });
+  }
+
+  function commitRename() {
+    const next = (renameVal || "").trim() || "Untitled";
+    onUpdate({ ...project, name: next, updatedAt: Date.now() });
+    setRenameOpen(false);
+    onToast({ kind: 'success', msg: 'Renamed to ' + next });
+  }
+
+  function clearCurrent() {
+    if (!confirm('Clear contents of the "' + activeTab + '" pane?')) return;
+    patch(activeTab, "");
+    onToast({ kind: 'info', msg: 'Cleared ' + activeTab.toUpperCase() + ' pane' });
+  }
+
+  function removeTemplate() {
+    if (!confirm('Reset all panes to blank canvas? This cannot be undone.')) return;
+    onUpdate({
+      ...project,
+      html: "", css: "", js: "",
+      updatedAt: Date.now()
+    });
+    onToast({ kind: 'info', msg: 'Template cleared' });
+  }
+
+  function buildPreviewDoc(p) {
+    if (p.type === 'single') {
+      return p.html || "<!doctype html><title>Empty</title><body style='font-family:sans-serif;color:#64748b;padding:24px'>Empty document.</body>";
+    }
+    return `<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${p.css || ''}</style></head><body>${p.html || ''}<script>try{${p.js || ''}}catch(e){var b=document.createElement('div');b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fee2e2;padding:8px;font:12px monospace;z-index:99999';b.textContent='Error: '+(e&&e.stack?e.stack:String(e));document.body.appendChild(b);}<\/script></body></html>`;
+  }
+
+  async function spinUpTunnel() {
+    try {
+      const payload = JSON.stringify({
+        type: project.type,
+        html: project.html || "",
+        css:  project.css  || "",
+        js:   project.js   || ""
+      });
+      const compressed = window.LZString.compressToBase64(payload);
+      const expiresAt = Date.now() + 15 * 60 * 1000; // 15 min
+      const base = location.pathname.replace(/index\.html$/, '').replace(/\/$/, '') + '/';
+      const link = location.origin + base + 'preview.html?p=' + encodeURIComponent(compressed) + '&exp=' + expiresAt;
+      setTunnel({ link, expiresAt });
+      onToast({ kind: 'success', msg: 'Tunnel live for 15 min' });
+    } catch (e) {
+      onToast({ kind: 'error', msg: 'Tunnel failed: ' + (e && e.message ? e.message : String(e)) });
+    }
+  }
+
+  function revokeTunnel() {
+    setTunnel(null);
+    onToast({ kind: 'info', msg: 'Tunnel revoked' });
+  }
+
+  // Effective tabs available
+  const tabs = project.type === 'single'
+    ? [{ id: 'html', label: 'HTML' }]
+    : [{ id: 'html', label: 'HTML' }, { id: 'css', label: 'CSS' }, { id: 'js', label: 'JS' }];
+
+  // Show split if multi-file and layout=split; otherwise unified single column.
+  const showSplit = project.type === 'multi' && layout === 'split';
+
+  return (
+    <div className="flex flex-col h-screen">
+      {/* Workspace header */}
+      <div className="glass border-b border-slate-800/60 px-3 py-2 flex items-center gap-3">
+        <button onClick={onBack}
+          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-1 text-sm">
+          <Icon name="arrow-left" size={16} />
+          <span className="hidden sm:inline">Dashboard</span>
+        </button>
+        <div className="h-5 w-px bg-slate-800" />
+        {renameOpen ? (
+          <div className="flex items-center gap-1">
+            <input ref={renameRef} value={renameVal}
+              onChange={(e) => setRenameVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenameOpen(false); }}
+              className="bg-slate-900 border border-sky-500/50 rounded-md px-2 py-1 text-sm text-slate-100 focus:border-sky-500" />
+            <button onClick={commitRename} className="p-1.5 rounded-md bg-sky-500/20 text-sky-300 hover:bg-sky-500/30">
+              <Icon name="check" size={14} />
+            </button>
+            <button onClick={() => setRenameOpen(false)} className="p-1.5 rounded-md text-slate-400 hover:bg-slate-800">
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setRenameOpen(true)}
+            className="group flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-slate-800/60 transition">
+            <Icon name="file-code-2" size={14} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-200">{project.name}</span>
+            <Icon name="pencil" size={12} className="text-slate-600 group-hover:text-sky-400" />
+          </button>
+        )}
+        <div className="flex-1" />
+
+        {/* Layout toggle for multi-file */}
+        {project.type === 'multi' && (
+          <div className="hidden sm:flex items-center bg-slate-900/80 border border-slate-800 rounded-lg p-0.5">
+            <button onClick={() => setLayout('split')}
+              className={`px-2.5 py-1 rounded-md text-xs flex items-center gap-1 transition ${layout === 'split' ? 'bg-slate-800 text-sky-300' : 'text-slate-500 hover:text-slate-300'}`}>
+              <Icon name="columns-2" size={13} /> Split
+            </button>
+            <button onClick={() => setLayout('unified')}
+              className={`px-2.5 py-1 rounded-md text-xs flex items-center gap-1 transition ${layout === 'unified' ? 'bg-slate-800 text-sky-300' : 'text-slate-500 hover:text-slate-300'}`}>
+              <Icon name="square-stack" size={13} /> Unified
+            </button>
+          </div>
+        )}
+
+        {/* Utility actions */}
+        <button onClick={clearCurrent}
+          title="Clear current pane"
+          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <Icon name="eraser" size={16} />
+        </button>
+        <button onClick={removeTemplate}
+          title="Remove template / blank canvas"
+          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-300 transition">
+          <Icon name="file-x-2" size={16} />
+        </button>
+        <button onClick={onDownload}
+          title="Download project"
+          className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+          <Icon name="download" size={16} />
+        </button>
+        <div className="h-5 w-px bg-slate-800 mx-1" />
+        <button onClick={spinUpTunnel}
+          className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center gap-1.5 shadow-lg shadow-sky-500/20 animate-pulse-glow transition">
+          <Icon name="rocket" size={14} /> Spin Up Tunnel
+        </button>
+      </div>
+
+      {/* Workspace body */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-px bg-slate-800/40 overflow-hidden">
+        {/* Editor column */}
+        <div className="bg-slate-950 flex flex-col min-h-0">
+          {/* Tab bar (only show tabs for multi-file) */}
+          {project.type === 'multi' && (
+            <div className="flex items-center bg-slate-900/60 border-b border-slate-800/60 px-1">
+              {tabs.map((t) => (
+                <button key={t.id} onClick={() => setActiveTab(t.id)}
+                  className={`px-3 py-2 text-xs font-medium border-b-2 transition flex items-center gap-1.5
+                    ${activeTab === t.id
+                      ? 'border-sky-500 text-sky-300 bg-slate-800/40'
+                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}>
+                  <Icon name={t.id === 'html' ? "file-code-2" : t.id === 'css' ? "palette" : "braces"} size={13} />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {showSplit ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-800/40 h-full">
+                <div className="bg-slate-950 min-h-0 overflow-hidden">
+                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-orange-300 flex items-center gap-1">
+                    <Icon name="file-code-2" size={11} /> HTML
+                  </div>
+                  <div className="h-[calc(100%-28px)]"><EditorPane lang="html" value={project.html} onChange={(v) => patch('html', v)} placeholder="<!-- HTML markup -->" /></div>
+                </div>
+                <div className="bg-slate-950 min-h-0 overflow-hidden">
+                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-sky-300 flex items-center gap-1">
+                    <Icon name="palette" size={11} /> CSS
+                  </div>
+                  <div className="h-[calc(100%-28px)]"><EditorPane lang="css" value={project.css} onChange={(v) => patch('css', v)} placeholder="/* CSS rules */" /></div>
+                </div>
+                <div className="bg-slate-950 min-h-0 overflow-hidden">
+                  <div className="bg-slate-900/60 border-b border-slate-800/60 px-2 py-1.5 text-[11px] uppercase tracking-wider text-yellow-300 flex items-center gap-1">
+                    <Icon name="braces" size={11} /> JS
+                  </div>
+                  <div className="h-[calc(100%-28px)]"><EditorPane lang="js" value={project.js} onChange={(v) => patch('js', v)} placeholder="// JavaScript" /></div>
+                </div>
+              </div>
+            ) : (
+              <EditorPane lang={activeTab} value={project[activeTab] || ""} onChange={(v) => patch(activeTab, v)} placeholder={`Write ${activeTab.toUpperCase()} here...`} />
+            )}
+          </div>
+        </div>
+
+        {/* Preview column */}
+        <div className="bg-slate-950 flex flex-col min-h-0 min-w-0">
+          <div className="bg-slate-900/60 border-b border-slate-800/60 px-3 py-2 flex items-center gap-2">
+            <Icon name="eye" size={14} className="text-slate-400" />
+            <span className="text-xs text-slate-300 font-medium">Live preview</span>
+            <div className="flex-1" />
+            <button onClick={() => setPreviewKey(k => k + 1)} title="Refresh preview"
+              className="p-1.5 rounded-md hover:bg-slate-800 text-slate-400 hover:text-sky-300 transition">
+              <Icon name="refresh-cw" size={13} />
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            <iframe key={previewKey} title="preview" srcDoc={previewSrc} sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+              className="w-full h-full bg-white border-0" />
+          </div>
+        </div>
+      </div>
+
+      {tunnel && <TunnelOverlay link={tunnel.link} expiresAt={tunnel.expiresAt} onRevoke={revokeTunnel} />}
+    </div>
+  );
+}
+
+/* ----- Dashboard -------------------------------------------------- */
+function Dashboard({ projects, onOpen, onCreate, onRename, onDelete, onDownload }) {
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    if (!query.trim()) return projects;
+    const q = query.toLowerCase();
+    return projects.filter(p => (p.name || '').toLowerCase().includes(q));
+  }, [projects, query]);
+
+  return (
+    <div className="min-h-[calc(100vh-57px)] grid-bg">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Hero */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[.25em] text-sky-400/80 mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+            Backendless Web Dev Studio
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-100 mb-2">
+            Browser Tunnel <span className="text-sky-400">IDE</span>
+          </h1>
+          <p className="text-slate-400 max-w-xl text-sm sm:text-base">
+            Build single-file or split HTML/CSS/JS projects entirely in your browser. Spin up ephemeral 15-minute tunnels and ship clean top-level preview URLs — no servers, no iframes.
+          </p>
+        </div>
+
+        {/* Search + new */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Icon name="search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search projects…"
+              className="w-full glass border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-sky-500/50" />
+          </div>
+          <button onClick={onCreate}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition">
+            <Icon name="plus" size={16} /> New Project
+          </button>
+        </div>
+
+        {/* Project grid */}
+        {filtered.length === 0 ? (
+          <div className="glass border border-dashed border-slate-800 rounded-2xl py-16 text-center">
+            <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center">
+              <Icon name={query ? "search-x" : "folder-open"} size={26} className="text-slate-600" />
+            </div>
+            <h3 className="text-slate-300 font-medium mb-1">
+              {query ? "No matching projects" : "No projects yet"}
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              {query ? "Try a different search term." : "Spin up your first project — it lives entirely in your browser."}
+            </p>
+            {!query && (
+              <button onClick={onCreate}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm text-slate-200 border border-slate-700 inline-flex items-center gap-2">
+                <Icon name="plus" size={14} /> Create project
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((p, i) => (
+              <ProjectCard key={p.id} project={p} index={i}
+                onOpen={() => onOpen(p.id)}
+                onRename={() => onRename(p.id)}
+                onDelete={() => onDelete(p.id)}
+                onDownload={() => onDownload(p.id)} />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-12 text-center text-xs text-slate-600">
+          <p>Browser Tunnel IDE · 100% client-side · LocalStorage persistence · No backend</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----- Root App --------------------------------------------------- */
+function App() {
+  const [projects, setProjects] = useState(() => loadProjects());
+  const [activeId, setActiveId] = useState(() => localStorage.getItem(LS_KEY_ACTIVE) || null);
+  const [showNew, setShowNew] = useState(false);
+  const [toast, setToast] = useState(null);
+  useIcons();
+
+  // Persist projects
+  useEffect(() => {
+    saveProjects(projects);
+  }, [projects]);
+
+  // Persist activeId
+  useEffect(() => {
+    if (activeId) localStorage.setItem(LS_KEY_ACTIVE, activeId);
+    else localStorage.removeItem(LS_KEY_ACTIVE);
+  }, [activeId]);
+
+  // Register service worker
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const registered = localStorage.getItem(LS_KEY_SW_REG);
+    if (registered) {
+      // already registered once; just refresh registration
+      navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(err => {
+        console.warn("SW re-register failed:", err);
+      });
+      return;
+    }
+    navigator.serviceWorker.register("./sw.js", { scope: "./" })
+      .then(() => {
+        localStorage.setItem(LS_KEY_SW_REG, "1");
+      })
+      .catch(err => {
+        console.warn("SW registration failed:", err);
+      });
+  }, []);
+
+  const active = useMemo(() => projects.find(p => p.id === activeId), [projects, activeId]);
+
+  function updateActive(next) {
+    setProjects(prev => prev.map(p => p.id === next.id ? next : p));
+  }
+
+  function createProject({ name, type, html, css, js }) {
+    const proj = {
+      id: genId(),
+      name,
+      type,
+      html: html || "",
+      css:  css  || "",
+      js:   js   || "",
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    setProjects(prev => [proj, ...prev]);
+    setActiveId(proj.id);
+    setShowNew(false);
+    setToast({ kind: 'success', msg: 'Project created' });
+  }
+
+  function renameProject(id) {
+    const p = projects.find(x => x.id === id);
+    if (!p) return;
+    const next = prompt('Rename project', p.name);
+    if (next && next.trim()) {
+      setProjects(prev => prev.map(x => x.id === id ? { ...x, name: next.trim(), updatedAt: Date.now() } : x));
+      setToast({ kind: 'success', msg: 'Renamed to ' + next.trim() });
+    }
+  }
+
+  function deleteProject(id) {
+    const p = projects.find(x => x.id === id);
+    if (!p) return;
+    if (!confirm('Delete "' + p.name + '"? This cannot be undone.')) return;
+    setProjects(prev => prev.filter(x => x.id !== id));
+    if (activeId === id) setActiveId(null);
+    setToast({ kind: 'info', msg: 'Project deleted' });
+  }
+
+  async function downloadProject(id) {
+    const p = projects.find(x => x.id === id);
+    if (!p) return;
+    const safeName = (p.name || 'project').replace(/[^a-z0-9-_]+/gi, '_');
+    try {
+      if (p.type === 'single') {
+        const blob = new Blob([p.html || ""], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, safeName + '.html');
+        URL.revokeObjectURL(url);
+      } else {
+        if (!window.JSZip) {
+          setToast({ kind: 'error', msg: 'JSZip not loaded' });
+          return;
+        }
+        const zip = new window.JSZip();
+        zip.file('index.html', `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${p.name}</title><link rel="stylesheet" href="styles.css"></head><body>${p.html || ''}<script src="script.js"><\/script></body></html>`);
+        zip.file('styles.css', p.css || '');
+        zip.file('script.js', p.js || '');
+        zip.file('README.md', `# ${p.name}\n\nGenerated by Browser Tunnel IDE.`);
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        triggerDownload(url, safeName + '.zip');
+        URL.revokeObjectURL(url);
+      }
+      setToast({ kind: 'success', msg: 'Downloaded ' + (p.type === 'single' ? '.html' : '.zip') });
+    } catch (e) {
+      setToast({ kind: 'error', msg: 'Download failed: ' + (e && e.message ? e.message : String(e)) });
+    }
+  }
+
+  function triggerDownload(url, filename) {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  return (
+    <ErrorBoundary>
+      <TopNav
+        onBackToDashboard={() => setActiveId(null)}
+        projectName={active ? active.name : null}
+        view={active ? 'workspace' : 'dashboard'} />
+
+      {active ? (
+        <Workspace
+          project={active}
+          onUpdate={updateActive}
+          onBack={() => setActiveId(null)}
+          onToast={setToast}
+          onDownload={() => downloadProject(active.id)} />
+      ) : (
+        <Dashboard
+          projects={projects}
+          onOpen={(id) => setActiveId(id)}
+          onCreate={() => setShowNew(true)}
+          onRename={renameProject}
+          onDelete={deleteProject}
+          onDownload={downloadProject} />
+      )}
+
+      {showNew && (
+        <NewProjectModal onClose={() => setShowNew(false)} onCreate={createProject} />
+      )}
+
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </ErrorBoundary>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
